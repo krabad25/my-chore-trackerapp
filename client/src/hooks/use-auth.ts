@@ -1,8 +1,8 @@
-import { useCallback, useState, useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { User } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -11,60 +11,55 @@ interface AuthState {
   userName: string | null;
 }
 
-// Initialize auth state from localStorage if available
 const getInitialAuthState = (): AuthState => {
-  const savedAuth = localStorage.getItem('authState');
-  if (savedAuth) {
-    try {
-      return JSON.parse(savedAuth);
-    } catch (e) {
-      // If there's an error parsing, return default state
-      return {
-        isAuthenticated: false,
-        userId: null,
-        userRole: null,
-        userName: null
-      };
-    }
-  }
   return {
     isAuthenticated: false,
     userId: null,
     userRole: null,
-    userName: null
+    userName: null,
   };
 };
 
-// Global auth state
-let authState = getInitialAuthState();
-
-// Subscribers to auth state changes
+// Use a simple subscription model for sharing auth state across components
 const subscribers: ((authState: AuthState) => void)[] = [];
+let globalAuthState = getInitialAuthState();
 
-// Update auth state and notify subscribers
 function setAuthState(newState: Partial<AuthState>) {
-  authState = { ...authState, ...newState };
-  localStorage.setItem('authState', JSON.stringify(authState));
-  subscribers.forEach(subscriber => subscriber(authState));
+  globalAuthState = { ...globalAuthState, ...newState };
+  // Notify all subscribers of the state change
+  subscribers.forEach(subscriber => subscriber(globalAuthState));
 }
 
-// Clear auth state on logout
 function clearAuthState() {
-  authState = {
-    isAuthenticated: false,
-    userId: null,
-    userRole: null,
-    userName: null
-  };
-  localStorage.removeItem('authState');
-  subscribers.forEach(subscriber => subscriber(authState));
+  globalAuthState = getInitialAuthState();
+  // Notify all subscribers of the state change
+  subscribers.forEach(subscriber => subscriber(globalAuthState));
 }
 
 export function useAuth() {
-  const { toast } = useToast();
+  const [state, setState] = useState<AuthState>(globalAuthState);
   const queryClient = useQueryClient();
-  const [state, setState] = useState<AuthState>(authState);
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch current user on mount
+  const { data: user, isLoading: isLoadingUser, isError } = useQuery<User | null>({
+    queryKey: ['/api/user'],
+    retry: false,
+    refetchOnWindowFocus: false,
+    onSuccess: (data) => {
+      if (data) {
+        setAuthState({
+          isAuthenticated: true,
+          userId: data.id,
+          userRole: data.role,
+          userName: data.name,
+        });
+      }
+    },
+    onError: () => {
+      clearAuthState();
+    }
+  });
 
   // Subscribe to auth state changes
   useEffect(() => {
@@ -78,91 +73,85 @@ export function useAuth() {
     };
   }, []);
 
-  // User data query
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/user", state.userId],
-    enabled: state.isAuthenticated && !!state.userId,
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      return apiRequest<User>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
+    },
+    onSuccess: (user) => {
+      setAuthState({
+        isAuthenticated: true,
+        userId: user.id,
+        userRole: user.role,
+        userName: user.name,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back, ${user.name}!`,
+      });
+      return user;
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Login Failed',
+        description: error?.message || 'Invalid username or password',
+        variant: 'destructive',
+      });
+      return null;
+    },
+  });
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/auth/logout', { method: 'POST' });
+    },
+    onSuccess: () => {
+      clearAuthState();
+      queryClient.invalidateQueries();
+      toast({
+        title: 'Logged Out',
+        description: 'You have been logged out successfully.',
+      });
+    },
   });
 
   const login = useCallback(async (username: string, password: string) => {
-    setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/login", { username, password });
-      
-      if (response && 'user' in response) {
-        const userData = response.user as User;
-        
-        setAuthState({
-          isAuthenticated: true,
-          userId: userData.id,
-          userRole: userData.role,
-          userName: userData.name
-        });
-        
-        // Invalidate any existing user data
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
-        return userData;
-      }
-      return null;
+      return await loginMutation.mutateAsync({ username, password });
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password.",
-        variant: "destructive",
-      });
       return null;
-    } finally {
-      setIsLoading(false);
     }
-  }, [toast, queryClient]);
+  }, [loginMutation]);
 
   const logout = useCallback(() => {
-    setIsLoading(true);
-    apiRequest("POST", "/api/auth/logout", {})
-      .then(() => {
-        clearAuthState();
-        queryClient.clear();
-      })
-      .catch((error) => {
-        console.error("Logout error:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [queryClient]);
+    logoutMutation.mutate();
+  }, [logoutMutation]);
 
   return {
     user,
     isAuthenticated: state.isAuthenticated,
-    userId: state.userId,
-    userRole: state.userRole,
-    userName: state.userName,
-    isParent: state.userRole === 'parent',
     isChild: state.userRole === 'child',
+    isParent: state.userRole === 'parent',
+    userId: state.userId,
+    userName: state.userName,
+    userRole: state.userRole,
     login,
     logout,
-    isLoading,
+    isLoading: isLoadingUser || loginMutation.isPending || logoutMutation.isPending,
   };
 }
 
-// Legacy parent auth for compatibility during transition
+// Helper hook specifically for parent mode checks
 export function useParentAuth() {
-  const { isAuthenticated, userRole, login, logout, isLoading } = useAuth();
+  const auth = useAuth();
   
-  const authenticate = useCallback(async (pin: string) => {
-    try {
-      await apiRequest("POST", "/api/auth/parent", { pin });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }, []);
-
   return {
-    isAuthenticated: isAuthenticated && userRole === 'parent',
-    authenticate,
-    logout,
-    isLoading,
+    ...auth,
+    isParentMode: auth.isAuthenticated && auth.isParent,
   };
 }

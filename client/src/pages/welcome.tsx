@@ -1,35 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { FileUpload } from "@/components/ui/file-upload";
-import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { User } from "@shared/schema";
 // Import Isabela's photo
 import isabelaPhoto from "../assets/Isabela.jpg";
 
 export default function Welcome() {
   const [, navigate] = useLocation();
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-  
-  const { data: user, isLoading, error } = useQuery<User>({
-    queryKey: ["/api/user"],
-  });
-  
-  useEffect(() => {
-    // Set Isabela's photo as the default, or use the profile photo from user data if available
-    if (user?.profilePhoto) {
-      setProfilePhotoUrl(user.profilePhoto);
-    } else {
-      setProfilePhotoUrl(isabelaPhoto);
-    }
-  }, [user]);
-  
-  const handlePhotoSuccess = (url: string) => {
-    setProfilePhotoUrl(url);
-  };
-  
+  const [profilePhotoUrl] = useState<string>(isabelaPhoto);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-accent to-secondary">
       <motion.div 
@@ -38,29 +17,17 @@ export default function Welcome() {
         transition={{ repeat: Infinity, duration: 2 }}
       >
         <h1 className="text-4xl md:text-5xl font-bold font-nunito text-primary mb-2">
-          {isLoading ? (
-            <Skeleton className="h-12 w-64 bg-white/50" />
-          ) : (
-            `Welcome, ${user?.childName || "Isabela"}!`
-          )}
+          Welcome to Chore Chart!
         </h1>
         <p className="text-xl font-comic text-dark">Let's earn some rewards today!</p>
       </motion.div>
       
       <div className="photo-container relative w-40 h-40 mb-8">
-        {isLoading ? (
-          <Skeleton className="w-full h-full rounded-full" />
-        ) : (
-          <img 
-            src={profilePhotoUrl || isabelaPhoto} 
-            alt={`${user?.childName || "Isabela"}'s profile photo`}
-            className="w-full h-full object-cover rounded-full border-4 border-primary shadow-lg"
-          />
-        )}
-        
-        <div className="absolute bottom-0 right-0">
-          <FileUpload onUploadSuccess={handlePhotoSuccess} />
-        </div>
+        <img 
+          src={profilePhotoUrl} 
+          alt="Isabela's profile photo"
+          className="w-full h-full object-cover rounded-full border-4 border-primary shadow-lg"
+        />
       </div>
       
       <motion.div 
@@ -70,37 +37,41 @@ export default function Welcome() {
         transition={{ delay: 0.2 }}
       >
         <Button 
-          onClick={() => navigate("/chores")}
-          className="w-full btn-primary text-xl py-4 px-6"
+          onClick={() => navigate("/login")}
+          className="w-full btn-primary text-xl py-6 px-6"
         >
-          <i className="ri-check-double-line mr-2 text-2xl"></i>
-          My Chores
+          <i className="ri-login-box-line mr-2 text-2xl"></i>
+          Log In
         </Button>
         
-        <Button 
-          onClick={() => navigate("/rewards")}
-          className="w-full btn-secondary text-xl py-4 px-6"
-        >
-          <i className="ri-gift-line mr-2 text-2xl"></i>
-          My Rewards
-        </Button>
+        <div className="flex justify-center gap-4 mt-6">
+          <Button 
+            onClick={() => navigate("/login?tab=child")}
+            className="btn-secondary text-md p-3 flex-1"
+            variant="outline"
+          >
+            <i className="ri-user-smile-line mr-2"></i>
+            Kid Login
+          </Button>
+          
+          <Button 
+            onClick={() => navigate("/login?tab=parent")}
+            className="btn-accent text-md p-3 flex-1"
+            variant="outline"
+          >
+            <i className="ri-user-settings-line mr-2"></i>
+            Parent Login
+          </Button>
+        </div>
         
-        <Button 
-          onClick={() => navigate("/progress")}
-          className="w-full btn-accent text-xl py-4 px-6"
-        >
-          <i className="ri-bar-chart-line mr-2 text-2xl"></i>
-          My Progress
-        </Button>
-        
-        <Button 
-          onClick={() => navigate("/parent")}
-          className="mt-10 text-dark opacity-70 hover:opacity-100 text-sm flex mx-auto"
-          variant="ghost"
-        >
-          <i className="ri-lock-line mr-1"></i>
-          Parent Mode
-        </Button>
+        <div className="mt-8 text-center">
+          <p className="text-dark text-opacity-70 text-sm mb-2">
+            A special chore tracker app made for Isabela!
+          </p>
+          <p className="text-dark text-opacity-70 text-xs">
+            Track chores, earn points, and get rewards
+          </p>
+        </div>
       </motion.div>
     </div>
   );
