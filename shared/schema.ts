@@ -1,52 +1,52 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  isParent: boolean("is_parent").default(false),
+  isParent: integer("is_parent", { mode: "boolean" }).default(false),
   childName: text("child_name"),
   profilePhoto: text("profile_photo"),
   points: integer("points").default(0),
   parentPin: text("parent_pin"),
 });
 
-export const chores = pgTable("chores", {
-  id: serial("id").primaryKey(),
+export const chores = sqliteTable("chores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   points: integer("points").notNull(),
   imageUrl: text("image_url"),
   frequency: text("frequency").notNull(), // "daily" or "weekly"
-  completed: boolean("completed").default(false),
+  completed: integer("completed", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(Date.now()),
 });
 
-export const rewards = pgTable("rewards", {
-  id: serial("id").primaryKey(),
+export const rewards = sqliteTable("rewards", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   points: integer("points").notNull(),
   imageUrl: text("image_url"),
-  claimed: boolean("claimed").default(false),
+  claimed: integer("claimed", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(Date.now()),
 });
 
-export const achievements = pgTable("achievements", {
-  id: serial("id").primaryKey(),
+export const achievements = sqliteTable("achievements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   icon: text("icon").notNull(),
-  unlocked: boolean("unlocked").default(false),
+  unlocked: integer("unlocked", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
 });
 
-export const choreCompletions = pgTable("chore_completions", {
-  id: serial("id").primaryKey(),
+export const choreCompletions = sqliteTable("chore_completions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   choreId: integer("chore_id").notNull(),
   userId: integer("user_id").notNull(),
-  completedAt: timestamp("completed_at").defaultNow(),
+  completedAt: integer("completed_at", { mode: "timestamp" }).default(Date.now()),
 });
 
 // Insert schemas
