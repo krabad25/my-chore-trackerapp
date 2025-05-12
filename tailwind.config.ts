@@ -5,6 +5,11 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Nunito', 'sans-serif'],
+        nunito: ['Nunito', 'sans-serif'],
+        comic: ['Comic Neue', 'cursive'],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -40,6 +45,22 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        // Custom colors
+        neutral: {
+          DEFAULT: "hsl(var(--neutral))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+        },
+        error: {
+          DEFAULT: "hsl(var(--error))",
+        },
+        dark: {
+          DEFAULT: "hsl(var(--dark))",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

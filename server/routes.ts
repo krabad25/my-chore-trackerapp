@@ -1,10 +1,19 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
+
+// Add type augmentation for multer file
+declare global {
+  namespace Express {
+    interface Request {
+      file?: multer.File;
+    }
+  }
+}
 import { 
   insertChoreSchema,
   insertRewardSchema,
@@ -299,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      if (user.points < reward.points) {
+      if ((user.points ?? 0) < reward.points) {
         return res.status(400).json({ 
           message: "Not enough points to claim this reward" 
         });
@@ -312,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updatedUser = await storage.updateUser(1, { 
-        points: user.points - reward.points 
+        points: (user.points ?? 0) - reward.points 
       });
       
       res.json({

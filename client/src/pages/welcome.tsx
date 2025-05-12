@@ -6,6 +6,8 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { User } from "@shared/schema";
+// Import Isabela's photo
+import isabelaPhoto from "../assets/Isabela.jpg";
 
 export default function Welcome() {
   const [, navigate] = useLocation();
@@ -16,8 +18,11 @@ export default function Welcome() {
   });
   
   useEffect(() => {
+    // Set Isabela's photo as the default, or use the profile photo from user data if available
     if (user?.profilePhoto) {
       setProfilePhotoUrl(user.profilePhoto);
+    } else {
+      setProfilePhotoUrl(isabelaPhoto);
     }
   }, [user]);
   
@@ -47,7 +52,7 @@ export default function Welcome() {
           <Skeleton className="w-full h-full rounded-full" />
         ) : (
           <img 
-            src={profilePhotoUrl || "https://i.imgur.com/kx7zcZy.png"} 
+            src={profilePhotoUrl || isabelaPhoto} 
             alt={`${user?.childName || "Isabela"}'s profile photo`}
             className="w-full h-full object-cover rounded-full border-4 border-primary shadow-lg"
           />
