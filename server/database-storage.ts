@@ -169,8 +169,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]> {
-    const startTimestamp = startDate.getTime();
-    const endTimestamp = endDate.getTime();
+    // Convert JavaScript dates to Unix timestamps (seconds)
+    const startTimestamp = Math.floor(startDate.getTime() / 1000);
+    const endTimestamp = Math.floor(endDate.getTime() / 1000);
     
     return await db
       .select()

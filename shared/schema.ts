@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -21,7 +22,7 @@ export const chores = sqliteTable("chores", {
   frequency: text("frequency").notNull(), // "daily" or "weekly"
   completed: integer("completed", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(Date.now()),
+  createdAt: integer("created_at").default(sql`(unixepoch())`),
 });
 
 export const rewards = sqliteTable("rewards", {
@@ -31,7 +32,7 @@ export const rewards = sqliteTable("rewards", {
   imageUrl: text("image_url"),
   claimed: integer("claimed", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(Date.now()),
+  createdAt: integer("created_at").default(sql`(unixepoch())`),
 });
 
 export const achievements = sqliteTable("achievements", {
@@ -46,7 +47,7 @@ export const choreCompletions = sqliteTable("chore_completions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   choreId: integer("chore_id").notNull(),
   userId: integer("user_id").notNull(),
-  completedAt: integer("completed_at", { mode: "timestamp" }).default(Date.now()),
+  completedAt: integer("completed_at").default(sql`(unixepoch())`),
 });
 
 // Insert schemas

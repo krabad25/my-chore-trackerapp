@@ -57,7 +57,7 @@ function main() {
   `);
   
   // Check if we already have data
-  const existingUsers = sqlite.prepare('SELECT COUNT(*) as count FROM users').get();
+  const existingUsers = sqlite.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   
   if (existingUsers.count === 0) {
     console.log('Initializing default data...');
