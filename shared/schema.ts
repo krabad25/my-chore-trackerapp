@@ -7,11 +7,12 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  isParent: integer("is_parent", { mode: "boolean" }).default(false),
-  childName: text("child_name"),
+  role: text("role").notNull(), // "parent" or "child"
+  name: text("name").notNull(),
   profilePhoto: text("profile_photo"),
   points: integer("points").default(0),
-  parentPin: text("parent_pin"),
+  parentId: integer("parent_id"), // For child accounts, reference to parent user
+  familyId: integer("family_id").notNull(), // Group users in families
 });
 
 export const chores = sqliteTable("chores", {

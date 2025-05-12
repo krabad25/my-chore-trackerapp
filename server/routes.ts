@@ -10,7 +10,7 @@ import { z } from "zod";
 declare global {
   namespace Express {
     interface Request {
-      file?: multer.File;
+      file?: Express.Multer.File;
     }
   }
 }
@@ -33,9 +33,102 @@ if (!fs.existsSync("uploads")) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.get("/api/user", async (req: Request, res: Response) => {
-    // For this app we're using the default user (Isabela)
-    const user = await storage.getUser(1);
+  // Authorization middleware and route handlers
+
+  // Middleware to check if user is authenticated
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.session.userId) {
+      next();
+    } else {
+      res.status(401).json({ message: "Unauthorized" });
+    }
+  };
+
+  // Middleware to check if user is a parent
+  const isParent = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== 'parent') {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    next();
+  };
+
+  // User authentication routes
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    const loginSchema = z.object({
+      username: z.string().min(1),
+      password: z.string().min(1)
+    });
+    
+    try {
+      const { username, password } = loginSchema.parse(req.body);
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Set user ID in session
+      req.session.userId = user.id;
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ 
+        user: userWithoutPassword,
+        token: "session-auth" // Placeholder for session-based auth
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid login data" });
+    }
+  });
+  
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Legacy parent PIN validation (for backward compatibility)
+  app.post("/api/auth/parent", async (req: Request, res: Response) => {
+    const pinSchema = z.object({
+      pin: z.string().min(4).max(6)
+    });
+    
+    try {
+      const { pin } = pinSchema.parse(req.body);
+      
+      // Find parent user with matching password
+      const parentUsers = await storage.getUsersByRole('parent');
+      const parentUser = parentUsers.find(user => user.password === pin);
+      
+      if (!parentUser) {
+        return res.status(401).json({ message: "Invalid PIN" });
+      }
+      
+      // Set parent user ID in session
+      req.session.userId = parentUser.id;
+      
+      res.json({ message: "PIN validated successfully" });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid PIN format" });
+    }
+  });
+  
+  // Get current user
+  app.get("/api/user", isAuthenticated, async (req: Request, res: Response) => {
+    const user = await storage.getUser(req.session.userId!);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -45,12 +138,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(userWithoutPassword);
   });
   
-  app.post("/api/user/photo", upload.single("photo"), async (req: Request, res: Response) => {
+  // Get user by ID - only accessible to parents or self
+  app.get("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
+    const idSchema = z.object({
+      id: z.coerce.number().int().positive()
+    });
+    
+    try {
+      const { id } = idSchema.parse(req.params);
+      const requestingUser = await storage.getUser(req.session.userId!);
+      
+      // Only allow access if requesting user is a parent or the same user
+      if (requestingUser?.role !== 'parent' && req.session.userId !== id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't send password to client
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user ID" });
+    }
+  });
+  
+  // Get family members - only accessible to parents
+  app.get("/api/family", isAuthenticated, async (req: Request, res: Response) => {
+    const requestingUser = await storage.getUser(req.session.userId!);
+    if (!requestingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const familyMembers = await storage.getUsersByFamilyId(requestingUser.familyId);
+    
+    // Filter out passwords
+    const safeMembers = familyMembers.map(member => {
+      const { password, ...memberWithoutPassword } = member;
+      return memberWithoutPassword;
+    });
+    
+    res.json(safeMembers);
+  });
+  
+  // Update user photo
+  app.post("/api/user/photo", isAuthenticated, upload.single("photo"), async (req: Request, res: Response) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
     
-    const user = await storage.getUser(1);
+    const user = await storage.getUser(req.session.userId!);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -62,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Update the user's profile photo
     const profilePhotoUrl = `/uploads/${filename}`;
-    const updatedUser = await storage.updateUser(1, { 
+    const updatedUser = await storage.updateUser(user.id, { 
       profilePhoto: profilePhotoUrl 
     });
     
@@ -74,20 +214,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Photo uploaded successfully", user: userWithoutPassword });
   });
   
-  app.put("/api/user/points", async (req: Request, res: Response) => {
+  // Update user points - parents can update any child's points
+  app.put("/api/user/:id/points", isAuthenticated, async (req: Request, res: Response) => {
+    const idSchema = z.object({
+      id: z.coerce.number().int().positive()
+    });
+    
     const pointsSchema = z.object({
-      points: z.number().int().positive()
+      points: z.number().int()
     });
     
     try {
+      const { id } = idSchema.parse(req.params);
       const { points } = pointsSchema.parse(req.body);
-      const user = await storage.getUser(1);
       
-      if (!user) {
+      const requestingUser = await storage.getUser(req.session.userId!);
+      if (!requestingUser) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const updatedUser = await storage.updateUser(1, { points });
+      // Only parents can update points for others
+      if (requestingUser.role !== 'parent' && req.session.userId !== id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "Target user not found" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, { points });
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update points" });
       }
@@ -95,31 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
     } catch (error) {
-      res.status(400).json({ message: "Invalid points data" });
-    }
-  });
-  
-  // Validate parent PIN
-  app.post("/api/auth/parent", async (req: Request, res: Response) => {
-    const pinSchema = z.object({
-      pin: z.string().min(4).max(6)
-    });
-    
-    try {
-      const { pin } = pinSchema.parse(req.body);
-      const user = await storage.getUser(1);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if (user.parentPin !== pin) {
-        return res.status(401).json({ message: "Invalid PIN" });
-      }
-      
-      res.json({ message: "PIN validated successfully" });
-    } catch (error) {
-      res.status(400).json({ message: "Invalid PIN format" });
+      res.status(400).json({ message: "Invalid request data" });
     }
   });
   

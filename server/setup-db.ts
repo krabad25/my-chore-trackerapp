@@ -62,11 +62,23 @@ function main() {
   if (existingUsers.count === 0) {
     console.log('Initializing default data...');
     
-    // Create default user
-    const userId = sqlite.prepare(`
-      INSERT INTO users (username, password, is_parent, child_name, points, parent_pin)
+    // Create a family ID
+    const familyId = 1;
+    
+    // Create parent user
+    const parentId = sqlite.prepare(`
+      INSERT INTO users (username, password, role, name, points, family_id)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run('default', 'password', 0, 'Isabela', 0, '1234').lastInsertRowid;
+    `).run('parent', 'password123', 'parent', 'Parent', 0, familyId).lastInsertRowid;
+    
+    // Create child user (Isabela)
+    const childId = sqlite.prepare(`
+      INSERT INTO users (username, password, role, name, points, parent_id, family_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('isabela', 'isabela123', 'child', 'Isabela', 0, parentId, familyId).lastInsertRowid;
+    
+    // Use child ID as our main user ID for the application
+    const userId = childId;
     
     // Add default chores
     const insertChore = sqlite.prepare(`
