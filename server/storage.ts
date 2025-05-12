@@ -70,24 +70,41 @@ export class MemStorage implements IStorage {
     this.achievements = new Map();
     this.choreCompletions = new Map();
 
-    // Create default user with Isabela as the child
+    // Create a family
+    const familyId = 1;
+    
+    // Create a parent user
     this.createUser({
-      username: "default",
-      password: "password",
-      isParent: false,
-      childName: "Isabela",
-      points: 0,
-      parentPin: "1234"
+      username: "parent",
+      password: "parent123",
+      role: "parent",
+      name: "Parent",
+      familyId,
+      points: null,
+      profilePhoto: null,
+      parentId: null
     });
     
-    // Add default chores
+    // Create a child user (Isabela)
+    this.createUser({
+      username: "isabela",
+      password: "123456",
+      role: "child",
+      name: "Isabela",
+      familyId,
+      points: 50,
+      profilePhoto: "/assets/Isabela.jpg",
+      parentId: 1
+    });
+    
+    // Add default chores for Isabela (userId: 2)
     this.createChore({
       title: "Make the bed",
       points: 5,
       imageUrl: "",
       frequency: "daily",
       completed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createChore({
@@ -96,7 +113,7 @@ export class MemStorage implements IStorage {
       imageUrl: "",
       frequency: "daily",
       completed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createChore({
@@ -105,7 +122,7 @@ export class MemStorage implements IStorage {
       imageUrl: "",
       frequency: "weekly",
       completed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createChore({
@@ -114,16 +131,16 @@ export class MemStorage implements IStorage {
       imageUrl: "",
       frequency: "weekly",
       completed: false,
-      userId: 1
+      userId: 2
     });
     
-    // Add default rewards
+    // Add default rewards for Isabela (userId: 2)
     this.createReward({
       title: "Extra Screen Time",
       points: 30,
       imageUrl: "",
       claimed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createReward({
@@ -131,7 +148,7 @@ export class MemStorage implements IStorage {
       points: 40,
       imageUrl: "",
       claimed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createReward({
@@ -139,7 +156,7 @@ export class MemStorage implements IStorage {
       points: 50,
       imageUrl: "",
       claimed: false,
-      userId: 1
+      userId: 2
     });
     
     this.createReward({
@@ -147,29 +164,29 @@ export class MemStorage implements IStorage {
       points: 100,
       imageUrl: "",
       claimed: false,
-      userId: 1
+      userId: 2
     });
     
-    // Add default achievements
+    // Add default achievements for Isabela (userId: 2)
     this.createAchievement({
       title: "First Chore",
       icon: "ri-rocket-line",
       unlocked: true,
-      userId: 1
+      userId: 2
     });
     
     this.createAchievement({
       title: "1 Week Streak",
       icon: "ri-calendar-check-line",
       unlocked: true,
-      userId: 1
+      userId: 2
     });
     
     this.createAchievement({
       title: "10 Chores",
       icon: "ri-award-line",
       unlocked: false,
-      userId: 1
+      userId: 2
     });
   }
   
