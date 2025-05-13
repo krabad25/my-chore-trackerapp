@@ -17,6 +17,7 @@ export default function Rewards() {
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationType, setCelebrationType] = useState<"reward" | "approval">("reward");
   
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: ["/api/user"],

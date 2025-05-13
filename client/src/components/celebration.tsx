@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "@/lib/confetti";
 
 interface CelebrationProps {
   isOpen: boolean;
@@ -8,24 +9,25 @@ interface CelebrationProps {
   childName: string;
   points: number;
   choreTitle?: string;
+  rewardTitle?: string;
+  type?: "chore" | "reward" | "approval";
+  message?: string;
 }
 
-export function Celebration({ isOpen, onClose, childName, points, choreTitle }: CelebrationProps) {
-  const [confetti, setConfetti] = useState<Array<{ id: number; color: string; left: string; delay: string }>>([]);
-
+export function Celebration({ 
+  isOpen, 
+  onClose, 
+  childName, 
+  points, 
+  choreTitle, 
+  rewardTitle,
+  type = "chore",
+  message
+}: CelebrationProps) {
   useEffect(() => {
     if (isOpen) {
-      // Create confetti pieces
-      const confettiColors = ["#FF6B6B", "#4ECDC4", "#FFD166"];
-      const newConfetti = Array.from({ length: 50 }, (_, i) => ({
-        id: i,
-        color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-        left: `${Math.random() * 100}%`,
-        delay: `${Math.random() * 3}s`,
-      }));
-      setConfetti(newConfetti);
-    } else {
-      setConfetti([]);
+      // Trigger confetti animation when the celebration opens
+      confetti();
     }
   }, [isOpen]);
 
@@ -40,28 +42,7 @@ export function Celebration({ isOpen, onClose, childName, points, choreTitle }: 
           transition={{ duration: 0.3 }}
         >
           <div className="relative">
-            {/* Confetti container */}
-            <div className="absolute inset-0 overflow-hidden">
-              {confetti.map((piece) => (
-                <motion.div
-                  key={piece.id}
-                  className="confetti"
-                  style={{
-                    backgroundColor: piece.color,
-                    left: piece.left,
-                    animationDelay: piece.delay,
-                    top: "-20px",
-                  }}
-                  initial={{ y: -20, rotate: 0, opacity: 1 }}
-                  animate={{ y: "100vh", rotate: 720, opacity: 0 }}
-                  transition={{ 
-                    duration: 5,
-                    delay: parseFloat(piece.delay), 
-                    ease: "easeInOut" 
-                  }}
-                />
-              ))}
-            </div>
+            {/* No need for manual confetti as we're using the confetti utility */}
 
             {/* Celebration card */}
             <motion.div
@@ -115,7 +96,10 @@ export function Celebration({ isOpen, onClose, childName, points, choreTitle }: 
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Great Job, {childName}!
+                {type === "chore" && "Great Job, "}
+                {type === "reward" && "Awesome, "}
+                {type === "approval" && "Congratulations, "}
+                {childName}!
               </motion.h2>
 
               <motion.p
@@ -124,12 +108,43 @@ export function Celebration({ isOpen, onClose, childName, points, choreTitle }: 
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                You earned{" "}
-                <span className="font-bold text-accent">{points} points</span>{" "}
-                {choreTitle && (
+                {type === "chore" && (
                   <>
-                    for completing <span className="font-bold">{choreTitle}</span>!
+                    You earned{" "}
+                    <span className="font-bold text-accent">{points} points</span>{" "}
+                    {choreTitle && (
+                      <>
+                        for completing <span className="font-bold">{choreTitle}</span>!
+                      </>
+                    )}
                   </>
+                )}
+                
+                {type === "reward" && (
+                  <>
+                    Your request to get the{" "}
+                    <span className="font-bold text-accent">{rewardTitle}</span>{" "}
+                    has been sent to your parent for approval!
+                  </>
+                )}
+                
+                {type === "approval" && (
+                  <>
+                    Your <span className="font-bold text-accent">{rewardTitle}</span>{" "}
+                    reward has been approved!
+                    {points > 0 && (
+                      <>
+                        <br/>
+                        <span className="font-bold text-accent">{points} points</span> have been used.
+                      </>
+                    )}
+                  </>
+                )}
+                
+                {message && (
+                  <div className="mt-2 text-sm font-medium bg-primary/10 p-2 rounded">
+                    {message}
+                  </div>
                 )}
               </motion.p>
 
@@ -142,7 +157,9 @@ export function Celebration({ isOpen, onClose, childName, points, choreTitle }: 
                   onClick={onClose}
                   className="bg-primary hover:bg-primary/90 text-white text-xl font-bold py-3 px-8 rounded-xl"
                 >
-                  Yay!
+                  {type === "chore" && "Yay!"}
+                  {type === "reward" && "Got it!"}
+                  {type === "approval" && "Awesome!"}
                 </Button>
               </motion.div>
             </motion.div>
