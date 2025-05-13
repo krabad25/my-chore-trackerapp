@@ -372,14 +372,6 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       {/* Photo upload section */}
       {showPhotoUpload && (
         <div className="mt-4 photo-upload-section">
-          <input
-            type="file"
-            accept="image/*" 
-            className="hidden"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-          />
-          
           {photoPreview ? (
             <div className="photo-preview relative rounded-lg overflow-hidden mb-3">
               <img src={photoPreview} alt="Proof photo" className="w-full h-auto max-h-60 object-contain" />
@@ -400,22 +392,35 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               </Button>
             </div>
           ) : (
-            <div 
-              className="photo-placeholder bg-pink-100 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer mb-3"
-              style={{ minHeight: "150px" }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-            >
-              <Camera className="h-12 w-12 text-pink-500 mb-2" />
-              <p className="text-center text-base font-medium text-pink-700">
-                Tap here to take a photo
-              </p>
-              <p className="text-center text-xs text-pink-600 mt-1">
-                (This will open your camera)
-              </p>
+            <div className="camera-inputs flex flex-col">
+              {/* Direct iPhone-friendly file input shown visibly */}
+              <label 
+                htmlFor="camera-input" 
+                className="photo-placeholder bg-pink-500 text-white rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer mb-3 font-bold"
+                style={{ minHeight: "150px" }}
+              >
+                <Camera className="h-16 w-16 text-white mb-3" />
+                <p className="text-center text-lg font-bold text-white">
+                  CLICK HERE TO
+                </p>
+                <p className="text-center text-lg font-bold text-white">
+                  TAKE A PHOTO
+                </p>
+              </label>
+              
+              <input
+                id="camera-input"
+                type="file"
+                accept="image/*"
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-4 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-base file:font-semibold
+                  file:bg-pink-50 file:text-pink-700
+                  hover:file:bg-pink-100"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
             </div>
           )}
           
