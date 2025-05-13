@@ -19,7 +19,12 @@ import { useAuth } from "@/hooks/use-auth";
 
 // Protected route component for child users
 const ChildRoute = ({ component: Component, ...rest }: any) => {
-  const { isAuthenticated, isChild } = useAuth();
+  const { isAuthenticated, isChild, isLoading } = useAuth();
+  
+  // Show loading state while auth is being checked
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
   
   if (!isAuthenticated) return <Redirect to="/" />;
   if (!isChild) return <Redirect to="/parent" />;
@@ -29,10 +34,15 @@ const ChildRoute = ({ component: Component, ...rest }: any) => {
 
 // Protected route component for parent users
 const ParentRoute = ({ component: Component, ...rest }: any) => {
-  const { isAuthenticated, isParent } = useAuth();
+  const { isAuthenticated, isParent, isLoading } = useAuth();
+  
+  // Show loading state while auth is being checked
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
   
   if (!isAuthenticated) return <Redirect to="/" />;
-  if (!isParent) return <Redirect to="/chores" />;
+  if (!isParent) return <Redirect to="/dashboard" />;
   
   return <Component {...rest} />;
 };

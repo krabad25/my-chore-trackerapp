@@ -71,13 +71,12 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      // Use form submission for navigation instead of JS-based navigation
-      // This is more reliable for session-based authentication
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = '/dashboard';
-      document.body.appendChild(form);
-      form.submit();
+      // Force a complete page replacement which is more reliable than navigation
+      console.log('Login successful, redirecting to dashboard');
+      // Small delay to ensure the session is properly set
+      setTimeout(() => {
+        window.location.replace('/dashboard');
+      }, 100);
       
     } catch (error) {
       console.error("Login error:", error);
@@ -137,13 +136,12 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      // Use form submission for navigation instead of JS-based navigation
-      // This is more reliable for session-based authentication
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = '/parent';
-      document.body.appendChild(form);
-      form.submit();
+      // Force a complete page replacement which is more reliable than navigation
+      console.log('Login successful, redirecting to parent page');
+      // Small delay to ensure the session is properly set
+      setTimeout(() => {
+        window.location.replace('/parent');
+      }, 100);
       
     } catch (error) {
       console.error("Login error:", error);
