@@ -65,7 +65,14 @@ export default function Navbar() {
                 <Button variant="outline" className="h-9 w-9 p-0 rounded-full border-2 border-gray-300 shadow-sm">
                   <Avatar className="h-full w-full">
                     {user?.profilePhoto ? (
-                      <AvatarImage src={user.profilePhoto} alt={userName || ""} />
+                      <AvatarImage 
+                        src={user.profilePhoto.startsWith('/') ? user.profilePhoto : `/${user.profilePhoto}`}
+                        alt={userName || ""}
+                        onError={() => {
+                          // If image fails to load, it will automatically show the fallback
+                          console.log("Profile image failed to load");
+                        }}
+                      />
                     ) : (
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {getInitials(userName)}
