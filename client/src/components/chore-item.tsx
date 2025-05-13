@@ -88,8 +88,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     }
     
     // Check if this chore requires proof
-    // For now, always use true since we're having database issues
-    const requiresProof = true;
+    // Use the requiresProof property from the chore object if available, otherwise default to false
+    const requiresProof = chore.requiresProof === true;
     
     // If proof is required and we're not showing the photo upload yet, show it
     if (requiresProof && !showPhotoUpload) {
@@ -241,10 +241,12 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               </span>
             )}
             
-            {/* Show proof requirement indicator - always show for now */}
-            <span className="mr-2 text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full flex items-center">
-              <Camera className="h-3 w-3 mr-1" /> Photo required
-            </span>
+            {/* Show proof requirement indicator only if the chore requires proof */}
+            {chore.requiresProof === true && (
+              <span className="mr-2 text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full flex items-center">
+                <Camera className="h-3 w-3 mr-1" /> Photo required
+              </span>
+            )}
             
             {isPending && (
               <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">

@@ -71,15 +71,11 @@ export default function AddChore() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
-    // Create a copy of values
-    const { requiresProof, ...restValues } = values;
-
     // Only include duration if this is a timed chore
     const choreData = {
-      ...restValues,
+      ...values,
       // If not a duration chore, don't send the duration field
       duration: values.isDurationChore ? values.duration : undefined
-      // Note: requiresProof is intentionally excluded as it's not in the database yet
     };
     
     try {
