@@ -333,25 +333,23 @@ export class MemStorage implements IStorage {
   // Chore Completion operations
   async completeChore(insertCompletion: InsertChoreCompletion): Promise<ChoreCompletion> {
     const id = this.choreCompletionId++;
-    const now = new Date();
+    const now = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
     const completion: ChoreCompletion = { 
       ...insertCompletion, 
       id, 
-      completedAt: now
+      completedAt: now,
+      status: "pending", // Default to pending status
+      reviewedBy: null,
+      reviewedAt: null
     };
     
     this.choreCompletions.set(id, completion);
     
-    // Update the chore to be completed
+    // Mark the chore as completed, but don't award points yet
+    // Points will be awarded when a parent approves the completion
     const chore = this.chores.get(insertCompletion.choreId);
     if (chore) {
       this.updateChore(chore.id, { completed: true });
-      
-      // Add points to user
-      const user = this.users.get(insertCompletion.userId);
-      if (user) {
-        this.updateUser(user.id, { points: (user.points || 0) + chore.points });
-      }
     }
     
     return completion;
@@ -361,6 +359,29 @@ export class MemStorage implements IStorage {
     return Array.from(this.choreCompletions.values()).filter(
       (completion) => completion.userId === userId
     );
+  }
+
+  async getChoreCompletion(id: number): Promise<ChoreCompletion | undefined> {
+    return this.choreCompletions.get(id);
+  }
+
+  async getChoreCompletionsByStatus(userId: number, status: string): Promise<ChoreCompletion[]> {
+    return Array.from(this.choreCompletions.values()).filter(
+      (completion) => completion.userId === userId && completion.status === status
+    );
+  }
+
+  async updateChoreCompletion(id: number, data: Partial<ChoreCompletion>): Promise<ChoreCompletion | undefined> {
+    const completion = this.choreCompletions.get(id);
+    
+    if (!completion) {
+      return undefined;
+    }
+    
+    const updatedCompletion = { ...completion, ...data };
+    this.choreCompletions.set(id, updatedCompletion);
+    
+    return updatedCompletion;
   }
   
   async getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]> {

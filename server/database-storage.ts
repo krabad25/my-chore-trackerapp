@@ -132,10 +132,16 @@ export class DatabaseStorage implements IStorage {
   
   // Chore Completion operations
   async completeChore(completion: InsertChoreCompletion): Promise<ChoreCompletion> {
-    // First create the completion record
+    // Make sure the completion has a pending status
+    const completionData = {
+      ...completion,
+      status: "pending"
+    };
+    
+    // Create the completion record
     const [choreCompletion] = await db
       .insert(choreCompletions)
-      .values(completion)
+      .values(completionData)
       .returning();
     
     // Update chore to completed
@@ -144,28 +150,7 @@ export class DatabaseStorage implements IStorage {
       .set({ completed: true })
       .where(eq(chores.id, completion.choreId));
     
-    // Get the chore to determine points
-    const [chore] = await db
-      .select()
-      .from(chores)
-      .where(eq(chores.id, completion.choreId));
-    
-    if (chore) {
-      // Get the user to update points
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, completion.userId));
-      
-      if (user) {
-        // Update user points
-        await db
-          .update(users)
-          .set({ points: (user.points ?? 0) + chore.points })
-          .where(eq(users.id, user.id));
-      }
-    }
-    
+    // Points will be awarded when a parent approves the completion
     return choreCompletion;
   }
   
@@ -174,6 +159,35 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(choreCompletions)
       .where(eq(choreCompletions.userId, userId));
+  }
+  
+  async getChoreCompletion(id: number): Promise<ChoreCompletion | undefined> {
+    const [completion] = await db
+      .select()
+      .from(choreCompletions)
+      .where(eq(choreCompletions.id, id));
+    return completion;
+  }
+  
+  async getChoreCompletionsByStatus(userId: number, status: string): Promise<ChoreCompletion[]> {
+    return await db
+      .select()
+      .from(choreCompletions)
+      .where(
+        and(
+          eq(choreCompletions.userId, userId),
+          eq(choreCompletions.status, status)
+        )
+      );
+  }
+  
+  async updateChoreCompletion(id: number, data: Partial<ChoreCompletion>): Promise<ChoreCompletion | undefined> {
+    const [updatedCompletion] = await db
+      .update(choreCompletions)
+      .set(data)
+      .where(eq(choreCompletions.id, id))
+      .returning();
+    return updatedCompletion;
   }
   
   async getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]> {
