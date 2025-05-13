@@ -40,9 +40,12 @@ export default function Navbar() {
       transition={{ duration: 0.3 }}
     >
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href={isAuthenticated ? (isChild ? "/chores" : "/parent") : "/"}>
-          <a className="text-lg font-bold">Chore Chart</a>
-        </Link>
+        <button 
+          onClick={() => navigate(isAuthenticated ? (isChild ? "/chores" : "/parent") : "/")}
+          className="text-lg font-bold bg-transparent border-none cursor-pointer p-0"
+        >
+          Chore Chart
+        </button>
 
         {isAuthenticated && (
           <div className="flex items-center gap-4">
