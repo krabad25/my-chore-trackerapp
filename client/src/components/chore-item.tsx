@@ -5,8 +5,9 @@ import { queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Camera, CheckCircle, Loader2, Upload } from "lucide-react";
+import { Camera, CheckCircle, Loader2, Upload, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CountdownTimer } from "@/components/countdown-timer";
 
 interface ChoreItemProps {
   chore: Chore;
@@ -19,6 +20,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
   const [isLoading, setIsLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerCompleted, setTimerCompleted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Check if this chore has a pending completion
@@ -58,15 +61,36 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     reader.readAsDataURL(file);
   };
 
+  const handleTimerComplete = () => {
+    setTimerCompleted(true);
+  };
+  
   const handleComplete = async () => {
     // First, check if already completed or pending
     if (chore.completed || isPending || isLoading) {
       return;
     }
     
+    // For timed chores, show the timer first
+    if (chore.isDurationChore && !showTimer && !timerCompleted) {
+      setShowTimer(true);
+      return;
+    }
+    
+    // For timed chores, ensure the timer is completed
+    if (chore.isDurationChore && !timerCompleted && showTimer) {
+      toast({
+        title: "Timer not completed",
+        description: "Please finish the timer before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // If we're not showing the photo upload yet, show it
     if (!showPhotoUpload) {
       setShowPhotoUpload(true);
+      setShowTimer(false); // Hide timer if it was showing
       return;
     }
     
@@ -102,9 +126,11 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       queryClient.invalidateQueries({ queryKey: ["/api/chores"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       
-      // Reset the photo upload state
+      // Reset all states
       setShowPhotoUpload(false);
       setPhotoPreview(null);
+      setShowTimer(false);
+      setTimerCompleted(false);
       
       // Show success message
       toast({
