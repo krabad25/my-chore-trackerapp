@@ -118,21 +118,45 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         const formData = new FormData();
         formData.append("proofImage", fileInputRef.current?.files?.[0] || new Blob());
         
-        response = await fetch(`/api/chores/${chore.id}/complete`, {
-          method: "POST",
-          body: formData,
-        });
+        // Use try/catch to debug any issues with the request
+        try {
+          console.log("Submitting chore completion with proof image for chore ID:", chore.id);
+          response = await fetch(`/api/chores/${chore.id}/complete`, {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            console.error("Failed to submit chore completion:", response.status, response.statusText);
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+            throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+          }
+        } catch (error) {
+          console.error("Error during fetch:", error);
+          throw error;
+        }
       } else {
         // No proof required, just send the completion request
-        response = await fetch(`/api/chores/${chore.id}/complete`, {
-          method: "POST",
-        });
+        try {
+          console.log("Submitting chore completion without proof for chore ID:", chore.id);
+          response = await fetch(`/api/chores/${chore.id}/complete`, {
+            method: "POST",
+          });
+          
+          if (!response.ok) {
+            console.error("Failed to submit chore completion:", response.status, response.statusText);
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+            throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+          }
+        } catch (error) {
+          console.error("Error during fetch:", error);
+          throw error;
+        }
       }
       
-      if (!response.ok) {
-        throw new Error("Failed to submit chore completion");
-      }
-      
+      // Parse the response data
       const data = await response.json();
       
       // Invalidate queries to refresh data
