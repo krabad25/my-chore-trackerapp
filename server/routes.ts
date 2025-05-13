@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Login request body:", req.body);
     
     try {
-      const { username, password } = req.body;
+      const { username, password, redirect } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -99,9 +99,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = user.id;
       console.log("User authenticated, session set with userId:", user.id);
       
-      // Return user data (except password)
-      const { password: _, ...userData } = user;
-      res.json(userData);
+      // Force the session to be saved immediately
+      req.session.save(err => {
+        if (err) {
+          console.error("Error saving session:", err);
+        }
+        
+        // Return user data (except password) and a redirect URL based on role
+        const { password: _, ...userData } = user;
+        
+        // Add redirect URL based on user role
+        const redirectUrl = user.role === 'parent' ? '/parent' : '/dashboard';
+        
+        res.json({
+          ...userData,
+          redirectUrl
+        });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Server error" });

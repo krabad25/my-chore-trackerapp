@@ -71,12 +71,17 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      // Force a complete page replacement which is more reliable than navigation
-      console.log('Login successful, redirecting to dashboard');
-      // Small delay to ensure the session is properly set
-      setTimeout(() => {
-        window.location.replace('/dashboard');
-      }, 100);
+      // Create an actual form to handle the redirect (this approach avoids common SPA routing issues)
+      const redirectTo = user.redirectUrl || '/dashboard';
+      console.log('Login successful, redirecting to:', redirectTo);
+      
+      // Create and submit a form to navigate to the dashboard
+      const form = document.createElement('form');
+      form.style.display = 'none';
+      form.method = 'GET';
+      form.action = redirectTo;
+      document.body.appendChild(form);
+      form.submit();
       
     } catch (error) {
       console.error("Login error:", error);
@@ -136,12 +141,17 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      // Force a complete page replacement which is more reliable than navigation
-      console.log('Login successful, redirecting to parent page');
-      // Small delay to ensure the session is properly set
-      setTimeout(() => {
-        window.location.replace('/parent');
-      }, 100);
+      // Create an actual form to handle the redirect (this approach avoids common SPA routing issues)
+      const redirectTo = user.redirectUrl || '/parent';
+      console.log('Login successful, redirecting to:', redirectTo);
+      
+      // Create and submit a form to navigate to the parent page
+      const form = document.createElement('form');
+      form.style.display = 'none';
+      form.method = 'GET';
+      form.action = redirectTo;
+      document.body.appendChild(form);
+      form.submit();
       
     } catch (error) {
       console.error("Login error:", error);
