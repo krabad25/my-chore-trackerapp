@@ -191,50 +191,46 @@ export default function Welcome() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-accent to-secondary">
-      <motion.div 
-        className="text-center mb-4"
-        animate={{ y: [0, -10, 0] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-      >
-        <h1 className="text-4xl md:text-5xl font-bold font-nunito text-primary mb-2">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-yellow-200 via-green-200 to-teal-200">
+      <div className="text-center mb-4">
+        <h1 className="text-5xl font-bold text-pink-500 mb-2">
           Isabela's Chore Chart!
         </h1>
-        <p className="text-xl font-comic text-dark">Let's earn some rewards today!</p>
-      </motion.div>
+        <p className="text-xl text-gray-700">Let's earn some rewards today!</p>
+      </div>
       
       <div className="photo-container relative w-32 h-32 mb-6">
         <img 
           src={profilePhotoUrl} 
           alt="Isabela's profile photo"
-          className="w-full h-full object-cover rounded-full border-4 border-primary shadow-lg"
+          className="w-full h-full object-cover rounded-full border-4 border-pink-400 shadow-lg"
         />
       </div>
       
-      <motion.div 
-        className="w-full max-w-md"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card className="border-2 border-primary/20 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-2xl text-center">Choose your login</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="w-full max-w-md">
+        <Card className="border-none shadow-lg rounded-lg overflow-hidden">
+          <CardContent className="p-6">
+            <h2 className="text-2xl text-center font-medium mb-4">Choose your login</h2>
+
             <Tabs 
               value={activeTab} 
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="child">
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 rounded-full p-1">
+                <TabsTrigger 
+                  value="child" 
+                  className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
+                >
                   <span className="flex items-center">
                     <i className="ri-user-smile-line mr-2"></i>
                     Kid Login
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="parent">
+                <TabsTrigger 
+                  value="parent"
+                  className="rounded-full data-[state=active]:bg-white data-[state=active]:shadow"
+                >
                   <span className="flex items-center">
                     <i className="ri-user-settings-line mr-2"></i>
                     Parent Login
@@ -253,6 +249,7 @@ export default function Welcome() {
                         placeholder="Enter your username"
                         value={childUsername}
                         onChange={(e) => setChildUsername(e.target.value)}
+                        className="border border-gray-300 rounded-md"
                       />
                     </div>
                     <div className="space-y-2">
@@ -263,11 +260,12 @@ export default function Welcome() {
                         placeholder="Enter your password"
                         value={childPassword}
                         onChange={(e) => setChildPassword(e.target.value)}
+                        className="border border-gray-300 rounded-md"
                       />
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-primary" 
+                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Logging in..." : "Log In"}
@@ -287,6 +285,7 @@ export default function Welcome() {
                         placeholder="Enter your username"
                         value={parentUsername}
                         onChange={(e) => setParentUsername(e.target.value)}
+                        className="border border-gray-300 rounded-md"
                       />
                     </div>
                     <div className="space-y-2">
@@ -297,11 +296,12 @@ export default function Welcome() {
                         placeholder="Enter your password"
                         value={parentPassword}
                         onChange={(e) => setParentPassword(e.target.value)}
+                        className="border border-gray-300 rounded-md"
                       />
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-secondary" 
+                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Logging in..." : "Log In"}
@@ -312,13 +312,13 @@ export default function Welcome() {
             </Tabs>
             
             <div className="mt-6 text-center">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-gray-500 text-sm">
                 A special chore tracker app made for Isabela!
               </p>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }
