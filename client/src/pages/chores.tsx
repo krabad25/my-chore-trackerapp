@@ -31,6 +31,9 @@ export default function Chores() {
   });
   
   const handleChoreComplete = (chore: Chore, points: number) => {
+    // Log the completion
+    console.log("Chore completed callback received:", chore.id, "Points:", points);
+    
     // Set the completed chore for celebration
     setCompletedChore(chore);
     
@@ -46,7 +49,8 @@ export default function Chores() {
           description: "Mom or Dad will review it soon and give you points!",
         });
         
-        // Stay on the chores page - no redirection needed
+        // Let the chore-item component handle any navigation
+        // Don't do any navigation here as it might conflict
         console.log("Chore submitted for review, waiting for parent approval");
       }
     }, 100);

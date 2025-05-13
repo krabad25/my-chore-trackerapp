@@ -222,11 +222,33 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       }
     } catch (error) {
       console.error("Failed to complete chore:", error);
+      
+      // Extract error message from response if possible
+      let errorMessage = "Failed to submit the chore. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Show appropriate error message to user
       toast({
         title: "Error",
-        description: "Failed to submit the chore. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // If the error was from a response with a specific redirectUrl, use it
+      if (error instanceof Error && 'data' in error && typeof error.data === 'object' && error.data !== null) {
+        const errorData = error.data as any;
+        if (errorData?.redirectUrl) {
+          console.log("Error response contains redirect URL:", errorData.redirectUrl);
+          
+          // Navigate to the specified URL after a short delay
+          setTimeout(() => {
+            navigate(errorData.redirectUrl);
+          }, 500);
+        }
+      }
     } finally {
       setIsLoading(false);
     }

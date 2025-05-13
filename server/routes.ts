@@ -550,15 +550,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(user.id, { points: newPoints });
       }
       
-      res.status(201).json({ 
+      // Add details about the operation outcome for better client-side handling
+      const responseData = {
         message,
         choreCompletion,
         chore: updatedChore,
-        redirectUrl: '/chores'  // Add a redirect URL for the client to use
+        redirectUrl: '/chores',
+        points: approveImmediately ? chore.points : 0,
+        success: true,
+        status: approveImmediately ? "approved" : "pending"
+      };
+      
+      console.log("[Chore Complete] Success response:", {
+        choreId: id,
+        userId: user.id, 
+        approved: approveImmediately,
+        pointsAwarded: approveImmediately ? chore.points : 0
       });
+      
+      res.status(201).json(responseData);
     } catch (error) {
-      console.error("Error completing chore:", error);
-      res.status(400).json({ message: "Invalid chore completion data" });
+      console.error("[Chore Complete] Error:", error);
+      
+      // More detailed error response
+      let errorMessage = "Failed to complete chore";
+      let statusCode = 400;
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check for specific error types
+        if (error.message.includes("Unauthorized")) {
+          statusCode = 401;
+        } else if (error.message.includes("not found")) {
+          statusCode = 404;
+        } 
+      }
+      
+      // Send error response with redirect back to chores page
+      res.status(statusCode).json({ 
+        success: false, 
+        message: errorMessage,
+        redirectUrl: '/chores' // Still provide a redirect URL even on error
+      });
     }
   });
   
