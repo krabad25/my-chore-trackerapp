@@ -44,6 +44,7 @@ const formSchema = z.object({
   isDurationChore: z.boolean().default(false),
   duration: z.coerce.number().min(1).max(120).optional(),
   // Whether proof image is required for completion
+  // Note: This is UI-only for now, not saved to database
   requiresProof: z.boolean().default(true),
 });
 
@@ -70,11 +71,15 @@ export default function AddChore() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
+    // Create a copy of values
+    const { requiresProof, ...restValues } = values;
+
     // Only include duration if this is a timed chore
     const choreData = {
-      ...values,
+      ...restValues,
       // If not a duration chore, don't send the duration field
       duration: values.isDurationChore ? values.duration : undefined
+      // Note: requiresProof is intentionally excluded as it's not in the database yet
     };
     
     try {
