@@ -375,7 +375,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
           <input
             type="file"
             accept="image/*"
-            capture="environment"
+            capture="camera"
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}
@@ -402,7 +402,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             </div>
           ) : (
             <div 
-              className="photo-placeholder bg-gray-100 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer mb-3"
+              className="photo-placeholder bg-pink-100 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer mb-3"
               style={{ minHeight: "150px" }}
               onClick={(e) => {
                 e.preventDefault();
@@ -410,9 +410,12 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
                 fileInputRef.current?.click();
               }}
             >
-              <Camera className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-center text-sm text-gray-500">
-                Take a photo to show you completed the chore
+              <Camera className="h-12 w-12 text-pink-500 mb-2" />
+              <p className="text-center text-base font-medium text-pink-700">
+                Tap here to take a photo
+              </p>
+              <p className="text-center text-xs text-pink-600 mt-1">
+                (This will open your camera)
               </p>
             </div>
           )}
