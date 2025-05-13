@@ -72,7 +72,7 @@ export default function Chores() {
             <i className="ri-arrow-left-line"></i>
           </Button>
           <h1 className="text-2xl font-bold font-nunito">
-            {user?.name || "Isabela"}'s Chores
+            {user?.name || "Isabella"}'s Chores
           </h1>
           <div className="flex items-center space-x-1">
             <span className="text-xl font-bold">{user?.points || 0}</span>
