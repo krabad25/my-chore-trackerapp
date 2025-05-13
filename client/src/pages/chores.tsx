@@ -31,20 +31,25 @@ export default function Chores() {
   });
   
   const handleChoreComplete = (chore: Chore, points: number) => {
+    // Set the completed chore for celebration
     setCompletedChore(chore);
     
-    // Only show celebration animation when points are awarded (not for pending submissions)
-    if (points > 0) {
-      setShowCelebration(true);
-    } else {
-      toast({
-        title: "Chore Submitted!",
-        description: "Mom or Dad will review it soon and give you points!",
-      });
-      
-      // Stay on the chores page - no redirection needed
-      console.log("Chore submitted for review, waiting for parent approval");
-    }
+    // Add a small delay to ensure state updates properly
+    setTimeout(() => {
+      // Only show celebration animation when points are awarded (not for pending submissions)
+      if (points > 0) {
+        console.log("Showing celebration for immediate points award");
+        setShowCelebration(true);
+      } else {
+        toast({
+          title: "Chore Submitted!",
+          description: "Mom or Dad will review it soon and give you points!",
+        });
+        
+        // Stay on the chores page - no redirection needed
+        console.log("Chore submitted for review, waiting for parent approval");
+      }
+    }, 100);
   };
   
   const dailyChores = chores?.filter(chore => chore.frequency === "daily") || [];

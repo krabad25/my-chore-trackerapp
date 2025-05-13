@@ -241,7 +241,11 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             (isLoading || isPending) && "opacity-50 cursor-not-allowed"
           )}
           whileTap={{ scale: 0.9 }}
-          onClick={handleComplete}
+          onClick={(e) => {
+            e.preventDefault(); // Prevent any default navigation
+            e.stopPropagation(); // Stop event propagation
+            handleComplete();
+          }}
         >
           {isLoading ? (
             <Loader2 className="h-6 w-6 text-secondary animate-spin" />
@@ -320,7 +324,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent any default navigation
+                  e.stopPropagation(); // Stop event propagation
                   setPhotoPreview(null);
                   if (fileInputRef.current) {
                     fileInputRef.current.value = "";
@@ -335,7 +341,11 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             <div 
               className="photo-placeholder bg-gray-100 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer mb-3"
               style={{ minHeight: "150px" }}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default navigation
+                e.stopPropagation(); // Stop event propagation
+                fileInputRef.current?.click();
+              }}
             >
               <Camera className="h-10 w-10 text-gray-400 mb-2" />
               <p className="text-center text-sm text-gray-500">
@@ -348,7 +358,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             <Button 
               className="w-full" 
               variant="secondary"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default navigation
+                e.stopPropagation(); // Stop event propagation
                 setShowPhotoUpload(false);
                 setPhotoPreview(null);
               }}
@@ -359,7 +371,11 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             <Button 
               className="w-full" 
               disabled={!photoPreview || isLoading} 
-              onClick={handleComplete}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent any default navigation
+                e.stopPropagation(); // Stop event propagation
+                handleComplete();
+              }}
             >
               {isLoading ? (
                 <>
