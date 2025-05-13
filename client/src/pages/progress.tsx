@@ -67,7 +67,7 @@ export default function Progress() {
             <i className="ri-arrow-left-line"></i>
           </Button>
           <h1 className="text-2xl font-bold font-nunito">
-            {user?.childName || "Isabela"}'s Progress
+            {user?.childName || "Isabella"}'s Progress
           </h1>
           <div className="flex items-center space-x-1">
             <span className="text-xl font-bold">{user?.points || 0}</span>
@@ -164,7 +164,7 @@ export default function Progress() {
           >
             <h2 className="section-title">
               <i className="ri-medal-line text-accent mr-2"></i>
-              {user?.childName || "Isabela"}'s Achievements
+              {user?.childName || "Isabella"}'s Achievements
             </h2>
             
             {isLoadingAchievements ? (
