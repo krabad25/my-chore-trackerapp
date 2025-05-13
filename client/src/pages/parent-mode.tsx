@@ -9,6 +9,7 @@ import { User, Chore, Reward } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ChoreApprovalList } from "@/components/chore-approval";
+import { RewardClaimApprovalList } from "@/components/reward-claim-approval";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ParentMode() {
@@ -279,8 +280,9 @@ export default function ParentMode() {
                   </TabsContent>
                   
                   {/* Approvals Tab */}
-                  <TabsContent value="approvals">
+                  <TabsContent value="approvals" className="space-y-6">
                     <ChoreApprovalList />
+                    <RewardClaimApprovalList />
                   </TabsContent>
                   
                   {/* Settings Tab */}

@@ -33,12 +33,20 @@ export default function Rewards() {
         credentials: "include"
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setShowDialog(false);
       
-      // Show celebration and update user data
+      // Show celebration for submitting the claim
       setShowCelebration(true);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      // Show toast notification about parent approval
+      toast({
+        title: "Claim Submitted!",
+        description: "Your reward claim has been sent to your parent for approval.",
+        duration: 5000
+      });
+      
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
     },
     onError: (error) => {
@@ -157,9 +165,9 @@ export default function Rewards() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Claim Reward</DialogTitle>
+            <DialogTitle className="text-2xl">Request Reward</DialogTitle>
             <DialogDescription className="text-lg">
-              Are you sure you want to claim this reward?
+              Do you want to request this reward? Your request will be sent to your parent for approval.
             </DialogDescription>
           </DialogHeader>
           
@@ -187,7 +195,7 @@ export default function Rewards() {
               onClick={confirmRewardClaim} 
               disabled={claimMutation.isPending}
             >
-              {claimMutation.isPending ? "Claiming..." : "Claim Reward"}
+              {claimMutation.isPending ? "Sending..." : "Request Reward"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -200,7 +208,7 @@ export default function Rewards() {
           onClose={() => setShowCelebration(false)}
           childName={user?.name || "Isabela"}
           points={selectedReward.points}
-          choreTitle={selectedReward.title}
+          choreTitle={`Request for ${selectedReward.title} sent!`}
         />
       )}
     </div>
