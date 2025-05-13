@@ -48,7 +48,7 @@ export async function migrateDatabase() {
           user_id INTEGER NOT NULL,
           reward_id INTEGER NOT NULL,
           status TEXT NOT NULL DEFAULT 'pending',
-          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          claimed_at INTEGER NOT NULL DEFAULT (unixepoch()),
           reviewed_by INTEGER,
           reviewed_at INTEGER,
           feedback TEXT,
