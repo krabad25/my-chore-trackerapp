@@ -99,7 +99,7 @@ function Router() {
 function App() {
   // Set title for the application
   useEffect(() => {
-    document.title = "Isabela's Chore Chart";
+    document.title = "Isabella's Chore Chart";
   }, []);
 
   return (
