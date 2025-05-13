@@ -99,12 +99,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = user.id;
       console.log("User authenticated, session set with userId:", user.id);
       
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      // Return user data (except password)
+      const { password: _, ...userData } = user;
+      res.json(userData);
     } catch (error) {
       console.error("Login error:", error);
-      res.status(400).json({ message: "Invalid login data" });
+      res.status(500).json({ message: "Server error" });
     }
   });
   
@@ -113,242 +113,224 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err) {
         return res.status(500).json({ message: "Failed to logout" });
       }
+      
       res.json({ message: "Logged out successfully" });
     });
   });
-
-  // Legacy parent PIN validation (for backward compatibility)
+  
   app.post("/api/auth/parent", async (req: Request, res: Response) => {
-    const pinSchema = z.object({
-      pin: z.string().min(4).max(6)
-    });
-    
     try {
-      const { pin } = pinSchema.parse(req.body);
+      const { password } = req.body;
       
-      // Find parent user with matching password
-      const parentUsers = await storage.getUsersByRole('parent');
-      const parentUser = parentUsers.find(user => user.password === pin);
-      
-      if (!parentUser) {
-        return res.status(401).json({ message: "Invalid PIN" });
+      if (!password) {
+        return res.status(400).json({ message: "Password is required" });
       }
       
-      // Set parent user ID in session
-      req.session.userId = parentUser.id;
+      // Always use the first parent account (id: 1) as the parent for now
+      const parent = await storage.getUser(1);
       
-      res.json({ message: "PIN validated successfully" });
+      if (!parent || parent.password !== password) {
+        return res.status(401).json({ message: "Invalid parent password" });
+      }
+      
+      // Set user ID in session to the parent's ID
+      req.session.userId = parent.id;
+      
+      // Return parent user data (except password)
+      const { password: _, ...userData } = parent;
+      res.json(userData);
     } catch (error) {
-      res.status(400).json({ message: "Invalid PIN format" });
+      res.status(500).json({ message: "Server error" });
     }
   });
   
-  // Get current user
+  // Get user info
   app.get("/api/user", isAuthenticated, async (req: Request, res: Response) => {
-    const user = await storage.getUser(req.session.userId!);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Don't send password to client
-    const { password, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
-  });
-  
-  // Get user by ID - only accessible to parents or self
-  app.get("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
-    const idSchema = z.object({
-      id: z.coerce.number().int().positive()
-    });
-    
     try {
-      const { id } = idSchema.parse(req.params);
-      const requestingUser = await storage.getUser(req.session.userId!);
-      
-      // Only allow access if requesting user is a parent or the same user
-      if (requestingUser?.role !== 'parent' && req.session.userId !== id) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const user = await storage.getUser(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Don't send password to client
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid user ID" });
-    }
-  });
-  
-  // Get family members - only accessible to parents
-  app.get("/api/family", isAuthenticated, async (req: Request, res: Response) => {
-    const requestingUser = await storage.getUser(req.session.userId!);
-    if (!requestingUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    const familyMembers = await storage.getUsersByFamilyId(requestingUser.familyId);
-    
-    // Filter out passwords
-    const safeMembers = familyMembers.map(member => {
-      const { password, ...memberWithoutPassword } = member;
-      return memberWithoutPassword;
-    });
-    
-    res.json(safeMembers);
-  });
-  
-  // Update user photo
-  app.post("/api/user/photo", isAuthenticated, (req, res, next) => {
-    // Handle multipart form data upload
-    upload.single("photo")(req, res, async (err) => {
-      if (err) {
-        console.error("File upload error:", err);
-        return res.status(400).json({ message: err.message || "File upload error" });
-      }
-    
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-      
-      try {
-        const user = await storage.getUser(req.session.userId!);
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        
-        const filename = `profile-${Date.now()}${path.extname(req.file.originalname)}`;
-        const targetPath = path.join("uploads", filename);
-        
-        fs.renameSync(req.file.path, targetPath);
-        
-        // Update the user's profile photo
-        const profilePhotoUrl = `/uploads/${filename}`;
-        const updatedUser = await storage.updateUser(user.id, { 
-          profilePhoto: profilePhotoUrl 
-        });
-        
-        if (!updatedUser) {
-          return res.status(500).json({ message: "Failed to update user photo" });
-        }
-        
-        const { password, ...userWithoutPassword } = updatedUser;
-        res.json({ message: "Photo uploaded successfully", user: userWithoutPassword });
-      } catch (error) {
-        console.error("Photo upload processing error:", error);
-        res.status(500).json({ message: "Error processing photo upload" });
-      }
-    });
-  });
-  
-  // Update user avatar from URL
-  app.put("/api/user/:id/avatar", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const { avatarUrl } = req.body;
-      
-      if (!avatarUrl) {
-        return res.status(400).json({ message: "No avatar URL provided" });
-      }
-      
-      // Ensure the user exists
+      const userId = req.session.userId!;
       const user = await storage.getUser(userId);
+      
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Security check: ensure users can only update their own avatar (unless they're a parent)
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Get specific user
+  app.get("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const idSchema = z.object({
+        id: z.coerce.number().int().positive()
+      });
+      
+      const { id } = idSchema.parse(req.params);
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only return own user or child users for parent
       const currentUser = await storage.getUser(req.session.userId!);
       if (!currentUser) {
         return res.status(404).json({ message: "Current user not found" });
       }
       
-      if (currentUser.id !== userId && currentUser.role !== "parent") {
-        return res.status(403).json({ message: "Not authorized to update this user's avatar" });
+      if (currentUser.id !== user.id && currentUser.role !== 'parent') {
+        return res.status(403).json({ message: "Access denied" });
       }
       
-      // Update the user's profile photo with the avatar URL
-      const updatedUser = await storage.updateUser(userId, {
-        profilePhoto: avatarUrl
+      // Return user data without password
+      const { password, ...userData } = user;
+      res.json(userData);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Get family members
+  app.get("/api/family", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const familyMembers = await storage.getUsersByFamilyId(currentUser.familyId);
+      
+      // Return user data without passwords
+      const familyData = familyMembers.map(user => {
+        const { password, ...userData } = user;
+        return userData;
+      });
+      
+      res.json(familyData);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Upload or update user avatar
+  app.put("/api/user/:id/avatar", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const idSchema = z.object({
+        id: z.coerce.number().int().positive()
+      });
+      
+      const { id } = idSchema.parse(req.params);
+      
+      // Check if user exists
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Users can only update their own avatar, unless they're a parent
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Current user not found" });
+      }
+      
+      if (currentUser.id !== user.id && currentUser.role !== 'parent') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { avatarUrl } = req.body;
+      if (!avatarUrl) {
+        return res.status(400).json({ message: "Avatar URL is required" });
+      }
+      
+      // Update user avatar
+      const updatedUser = await storage.updateUser(id, { 
+        profilePhoto: avatarUrl 
       });
       
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update avatar" });
       }
       
-      const { password, ...userWithoutPassword } = updatedUser;
-      return res.status(200).json({
-        message: "Avatar updated successfully",
-        user: userWithoutPassword
+      // Return updated user
+      res.json({ 
+        message: "Avatar updated successfully", 
+        user: updatedUser 
       });
     } catch (error) {
-      console.error("Error updating avatar:", error);
-      return res.status(500).json({ message: "Failed to update avatar" });
+      res.status(500).json({ message: "Server error" });
     }
   });
   
-  // Update user points - parents can update any child's points
+  // Update user points
   app.put("/api/user/:id/points", isAuthenticated, async (req: Request, res: Response) => {
-    const idSchema = z.object({
-      id: z.coerce.number().int().positive()
-    });
-    
-    const pointsSchema = z.object({
-      points: z.number().int()
-    });
-    
     try {
-      const { id } = idSchema.parse(req.params);
-      const { points } = pointsSchema.parse(req.body);
+      const idSchema = z.object({
+        id: z.coerce.number().int().positive()
+      });
       
-      const requestingUser = await storage.getUser(req.session.userId!);
-      if (!requestingUser) {
+      const { id } = idSchema.parse(req.params);
+      
+      // Check if user exists
+      const user = await storage.getUser(id);
+      if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Only parents can update points for others
-      if (requestingUser.role !== 'parent' && req.session.userId !== id) {
+      // Only parents can manually update points
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Current user not found" });
+      }
+      
+      if (currentUser.role !== 'parent') {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const targetUser = await storage.getUser(id);
-      if (!targetUser) {
-        return res.status(404).json({ message: "Target user not found" });
+      const { points } = req.body;
+      if (typeof points !== 'number') {
+        return res.status(400).json({ message: "Valid points value is required" });
       }
       
+      // Update user points
       const updatedUser = await storage.updateUser(id, { points });
+      
       if (!updatedUser) {
         return res.status(500).json({ message: "Failed to update points" });
       }
       
-      const { password, ...userWithoutPassword } = updatedUser;
-      res.json(userWithoutPassword);
+      // Return updated user
+      res.json({ 
+        message: "Points updated successfully", 
+        user: updatedUser 
+      });
     } catch (error) {
-      res.status(400).json({ message: "Invalid request data" });
+      res.status(500).json({ message: "Server error" });
     }
   });
   
-  // Chore routes
-  // Get chore completions by user and status
+  // Get user's chore completions by status
   app.get("/api/chore-completions/user/:id/:status", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.params.id);
-      const status = req.params.status;
+      const paramsSchema = z.object({
+        id: z.coerce.number().int().positive(),
+        status: z.enum(["pending", "approved", "rejected"]),
+      });
       
-      // Validate status
-      if (!["pending", "approved", "rejected"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status parameter" });
+      const { id, status } = paramsSchema.parse(req.params);
+      
+      // Check if accessing own completions or parent accessing child's
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Current user not found" });
       }
       
-      // Check if user is requesting their own completions, or if parent requests child's
-      if (req.session.userId !== userId) {
-        const user = await storage.getUser(req.session.userId!);
-        if (user?.role !== 'parent') {
-          return res.status(403).json({ message: "Access denied" });
-        }
+      const userId = id;
+      
+      // Only allow users to see their own completions, or parents to see any
+      if (currentUser.id !== userId && currentUser.role !== 'parent') {
+        return res.status(403).json({ message: "Access denied" });
       }
       
       const completions = await storage.getChoreCompletionsByStatus(userId, status);
@@ -464,15 +446,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { id } = idSchema.parse(req.params);
-      const chore = await storage.getChore(id);
+      const success = await storage.deleteChore(id);
       
-      if (!chore || chore.userId !== 1) {
+      if (!success) {
         return res.status(404).json({ message: "Chore not found" });
-      }
-      
-      const deleted = await storage.deleteChore(id);
-      if (!deleted) {
-        return res.status(500).json({ message: "Failed to delete chore" });
       }
       
       res.json({ message: "Chore deleted successfully" });
@@ -481,6 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Complete a chore
   app.post("/api/chores/:id/complete", upload.single("proofImage"), async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
@@ -488,16 +466,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { id } = idSchema.parse(req.params);
-      const chore = await storage.getChore(id);
       
-      // Make sure the chore exists
-      if (!chore) {
-        return res.status(404).json({ message: "Chore not found" });
-      }
-      
-      // Check if the user is authenticated
+      // Ensure the user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Check if chore exists
+      const chore = await storage.getChore(id);
+      if (!chore) {
+        return res.status(404).json({ message: "Chore not found" });
       }
       
       // Get the user who is submitting the completion
@@ -548,44 +526,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Different message based on whether the chore was auto-approved or not
       const message = approveImmediately 
         ? "Chore completed successfully!" 
-        : "Chore submitted for review";
+        : "Chore completion submitted for parent approval.";
       
-      // If the chore was auto-approved and the user is a child, award points immediately
-      if (approveImmediately && user.role === "child") {
-        // Award points directly to the user
-        const updatedUser = await storage.updateUser(user.id, { 
-          points: (user.points || 0) + chore.points 
-        });
-        
-        res.status(201).json({
-          message,
-          completion: choreCompletion,
-          chore: updatedChore,
-          user: updatedUser || user, // Return updated user if available
-          pointsAwarded: chore.points,
-          autoApproved: true
-        });
-      } else {
-        res.status(201).json({
-          message,
-          completion: choreCompletion,
-          chore: updatedChore,
-          user,
-          autoApproved: approveImmediately
-        });
+      // If auto-approved, award points immediately
+      if (approveImmediately) {
+        const currentPoints = user.points || 0;
+        const newPoints = currentPoints + chore.points;
+        await storage.updateUser(user.id, { points: newPoints });
       }
+      
+      res.status(201).json({ 
+        message,
+        choreCompletion,
+        chore: updatedChore
+      });
     } catch (error) {
-      console.error("Chore completion error:", error);
+      console.error("Error completing chore:", error);
       res.status(400).json({ message: "Invalid chore completion data" });
     }
   });
   
-  // Reward routes
+  // Get all rewards
   app.get("/api/rewards", async (req: Request, res: Response) => {
     const rewards = await storage.getRewards(1);
     res.json(rewards);
   });
   
+  // Create a new reward (parent only)
   app.post("/api/rewards", isParent, async (req: Request, res: Response) => {
     try {
       const newReward = insertRewardSchema.parse({
@@ -612,28 +579,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const points = parseInt(req.body.points);
-      if (isNaN(points) || points < 5 || points > 200) {
-        return res.status(400).json({ message: "Points must be between 5 and 200" });
+      if (isNaN(points) || points < 1 || points > 100) {
+        return res.status(400).json({ message: "Points must be between 1 and 100" });
       }
       
-      let imageUrl = null;
+      // Process the image
+      let imageUrl = "";
       
-      // If there's an uploaded file, save it to the uploads directory
       if (req.file) {
+        // Rename the file to include "reward-" prefix for better organization
         const originalName = req.file.originalname.replace(/[^a-zA-Z0-9\.]/g, '_');
         const fileName = `reward-${Date.now()}-${originalName}`;
-        const uploadDir = path.join(process.cwd(), "uploads");
-        const uploadPath = path.join(uploadDir, fileName);
+        const uploadPath = path.join("uploads", fileName);
         
-        // Ensure uploads directory exists
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        
-        // Move the temporary file to the uploads directory
+        // Move the temporary file to the permanent location
         fs.renameSync(req.file.path, uploadPath);
-        
-        // Generate URL for the image
         imageUrl = `/uploads/${fileName}`;
         console.log("Image saved at:", imageUrl);
       }
@@ -653,6 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update a reward
   app.put("/api/rewards/:id", async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
@@ -677,6 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete a reward
   app.delete("/api/rewards/:id", async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
@@ -684,15 +646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { id } = idSchema.parse(req.params);
-      const reward = await storage.getReward(id);
+      const success = await storage.deleteReward(id);
       
-      if (!reward || reward.userId !== 1) {
+      if (!success) {
         return res.status(404).json({ message: "Reward not found" });
-      }
-      
-      const deleted = await storage.deleteReward(id);
-      if (!deleted) {
-        return res.status(500).json({ message: "Failed to delete reward" });
       }
       
       res.json({ message: "Reward deleted successfully" });
@@ -701,6 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Claim a reward
   app.post("/api/rewards/:id/claim", isAuthenticated, async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
@@ -709,48 +667,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = idSchema.parse(req.params);
       
-      // Get the reward
+      // Check if reward exists
       const reward = await storage.getReward(id);
       if (!reward) {
         return res.status(404).json({ message: "Reward not found" });
       }
       
-      // Get the user requesting the claim
-      const userId = req.session.userId!;
-      const user = await storage.getUser(userId);
+      // Get the user who is claiming the reward
+      const user = await storage.getUser(req.session.userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
       // Check if user has enough points
-      if ((user.points ?? 0) < reward.points) {
+      if (user.points < reward.points) {
         return res.status(400).json({ 
-          message: "Not enough points to claim this reward",
-          required: reward.points,
-          available: user.points
+          message: "Not enough points", 
+          pointsNeeded: reward.points - user.points
         });
       }
       
-      // Create a reward claim request (points are not deducted until parent approval)
-      const rewardClaim = await storage.claimReward({
-        rewardId: reward.id,
-        userId: userId,
-        status: "pending"
+      // Create claim record
+      const claim = insertRewardClaimSchema.parse({
+        rewardId: id,
+        userId: user.id,
+        status: "pending",
       });
       
-      // Mark the reward as claimed in the request state
-      await storage.updateReward(id, { 
-        claimed: true
-      });
+      const rewardClaim = await storage.claimReward(claim);
       
-      res.status(201).json({
-        message: "Reward claim request submitted for parent approval",
-        claim: rewardClaim,
-        reward: reward
+      // For parent users, auto-approve the claim
+      if (user.role === "parent") {
+        const now = Math.floor(Date.now() / 1000);
+        await storage.updateRewardClaim(rewardClaim.id, {
+          status: "approved",
+          reviewedBy: user.id,
+          reviewedAt: now
+        });
+        
+        // Update user points
+        const newPoints = user.points - reward.points;
+        await storage.updateUser(user.id, { points: newPoints });
+        
+        // Mark reward as claimed
+        await storage.updateReward(id, { claimed: true });
+        
+        return res.status(201).json({ 
+          message: "Reward claimed successfully", 
+          rewardClaim,
+          pointsLeft: newPoints
+        });
+      }
+      
+      // For child users, submit for parent approval
+      res.status(201).json({ 
+        message: "Reward claim request submitted for parent approval", 
+        rewardClaim
       });
     } catch (error) {
       console.error("Error claiming reward:", error);
       res.status(400).json({ message: "Invalid reward claim data" });
+    }
+  });
+  
+  // Get reward claims for current user
+  app.get("/api/reward-claims/user", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const claims = await storage.getRewardClaims(userId);
+      
+      // Populate with reward details
+      const claimsWithDetails = await Promise.all(
+        claims.map(async (claim) => {
+          const reward = await storage.getReward(claim.rewardId);
+          return {
+            ...claim,
+            reward
+          };
+        })
+      );
+      
+      res.json(claimsWithDetails);
+    } catch (error) {
+      console.error("Error fetching user reward claims:", error);
+      res.status(500).json({ message: "Failed to fetch user reward claims" });
     }
   });
   
@@ -799,20 +799,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Review a reward claim - approve or reject
+  // Review a reward claim (approve/reject)
   app.post("/api/reward-claims/:id/review", isParent, async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
     });
     
-    const reviewSchema = z.object({
-      status: z.enum(["approved", "rejected"]),
-      feedback: z.string().optional()
-    });
-    
     try {
       const { id } = idSchema.parse(req.params);
-      const { status } = reviewSchema.parse(req.body);
+      const { status } = req.body;
+      
+      if (status !== "approved" && status !== "rejected") {
+        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      }
       
       // Get the claim
       const claim = await storage.getRewardClaim(id);
@@ -820,46 +819,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Reward claim not found" });
       }
       
-      // Get the reward for point calculation
+      // Make sure claim is pending
+      if (claim.status !== "pending") {
+        return res.status(400).json({ message: "Reward claim has already been reviewed" });
+      }
+      
+      // Get the reward
       const reward = await storage.getReward(claim.rewardId);
       if (!reward) {
         return res.status(404).json({ message: "Reward not found" });
       }
       
-      // Update the claim status
+      // Get the child user
+      const child = await storage.getUser(claim.userId);
+      if (!child) {
+        return res.status(404).json({ message: "Child user not found" });
+      }
+      
+      // Update claim status
+      const now = Math.floor(Date.now() / 1000);
       const updatedClaim = await storage.updateRewardClaim(id, {
         status,
-        reviewedBy: req.session.userId!,
-        reviewedAt: Math.floor(Date.now() / 1000)
+        reviewedBy: req.session.userId,
+        reviewedAt: now
       });
-      
-      // If approved, deduct points from user
-      let user = await storage.getUser(claim.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
       
       if (status === "approved") {
-        // Calculate new points balance
-        const newPoints = Math.max(0, (user.points || 0) - reward.points);
+        // Deduct points from the child
+        const newPoints = child.points - reward.points;
+        await storage.updateUser(child.id, { points: newPoints });
         
-        // Update user points
-        user = await storage.updateUser(user.id, { points: newPoints }) || user;
+        // Mark reward as claimed
+        await storage.updateReward(reward.id, { claimed: true });
+        
+        res.json({ 
+          message: "Reward claim approved", 
+          claim: updatedClaim,
+          reward,
+          child: { ...child, points: newPoints }
+        });
+      } else {
+        // If rejected, no points are deducted
+        res.json({ 
+          message: "Reward claim rejected", 
+          claim: updatedClaim
+        });
       }
-      
-      res.json({
-        message: `Reward claim ${status}`,
-        claim: updatedClaim,
-        user: user,
-        reward: reward
-      });
     } catch (error) {
       console.error("Error reviewing reward claim:", error);
-      res.status(400).json({ message: "Invalid review data" });
+      res.status(400).json({ message: "Invalid reward claim review data" });
     }
   });
   
-  // Get pending chore completions - for parent review
+  // Get pending chore completions - for parent approval
   app.get("/api/chore-completions/pending", isParent, async (req: Request, res: Response) => {
     try {
       // Get all users in the family
@@ -878,11 +890,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get pending completions for all children in the family
       const pendingCompletions = [];
-      for (const child of childUsers) {
-        const completions = await storage.getChoreCompletionsByStatus(child.id, 'pending');
-        
-        // For each completion, get the associated chore details
-        for (const completion of completions) {
+      
+      // Get all pending completions
+      const completions = await storage.getChoreCompletionsByStatus(0, "pending");
+      
+      // Filter completions for children in this family and add chore and child details
+      for (const completion of completions) {
+        const child = childUsers.find(child => child.id === completion.userId);
+        if (child) {
           const chore = await storage.getChore(completion.choreId);
           if (chore) {
             pendingCompletions.push({
@@ -896,225 +911,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(pendingCompletions);
     } catch (error) {
-      console.error("Error fetching pending completions:", error);
-      res.status(500).json({ message: "Failed to fetch pending completions" });
+      console.error("Error fetching pending chore completions:", error);
+      res.status(500).json({ message: "Failed to fetch pending chore completions" });
     }
   });
   
-  // Review a chore completion - approve or reject
+  // Review a chore completion (approve/reject)
   app.post("/api/chore-completions/:id/review", isParent, async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
     });
     
-    const reviewSchema = z.object({
-      status: z.enum(["approved", "rejected"]),
-      feedback: z.string().optional()
-    });
-    
     try {
       const { id } = idSchema.parse(req.params);
-      const { status, feedback } = reviewSchema.parse(req.body);
+      const { status } = req.body;
+      
+      if (status !== "approved" && status !== "rejected") {
+        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      }
       
       // Get the completion
       const completion = await storage.getChoreCompletion(id);
       if (!completion) {
-        return res.status(404).json({ message: "Completion not found" });
+        return res.status(404).json({ message: "Chore completion not found" });
       }
       
-      // Update the completion status
+      // Make sure completion is pending
+      if (completion.status !== "pending") {
+        return res.status(400).json({ message: "Chore completion has already been reviewed" });
+      }
+      
+      // Get the chore
+      const chore = await storage.getChore(completion.choreId);
+      if (!chore) {
+        return res.status(404).json({ message: "Chore not found" });
+      }
+      
+      // Get the child user
+      const child = await storage.getUser(completion.userId);
+      if (!child) {
+        return res.status(404).json({ message: "Child user not found" });
+      }
+      
+      // Update completion status
+      const now = Math.floor(Date.now() / 1000);
       const updatedCompletion = await storage.updateChoreCompletion(id, {
         status,
-        reviewedBy: req.session.userId!,
-        reviewedAt: Math.floor(Date.now() / 1000)
+        reviewedBy: req.session.userId,
+        reviewedAt: now
       });
       
-      // If approved, award points to the child
       if (status === "approved") {
-        const chore = await storage.getChore(completion.choreId);
-        if (chore) {
-          const user = await storage.getUser(completion.userId);
-          if (user) {
-            const currentPoints = user.points || 0;
-            await storage.updateUser(user.id, {
-              points: currentPoints + chore.points
-            });
-          }
-        }
-      }
-      
-      res.json({
-        message: `Chore completion ${status}`,
-        completion: updatedCompletion
-      });
-    } catch (error) {
-      console.error("Error reviewing completion:", error);
-      res.status(400).json({ message: "Invalid review data" });
-    }
-  });
-  
-  // Achievement routes
-  app.get("/api/achievements", async (req: Request, res: Response) => {
-    const achievements = await storage.getAchievements(1);
-    res.json(achievements);
-  });
-  
-  // Reward claim routes
-  app.post("/api/rewards/:id/claim", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const userId = req.session.userId!;
-      
-      // Verify the reward exists
-      const reward = await storage.getReward(id);
-      if (!reward) {
-        return res.status(404).json({ message: "Reward not found" });
-      }
-      
-      // Get user and check points
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if ((user.points || 0) < reward.points) {
-        return res.status(400).json({ 
-          message: "Not enough points to claim this reward",
-          pointsNeeded: reward.points - (user.points || 0)
+        // Award points to the child
+        const newPoints = child.points + chore.points;
+        await storage.updateUser(child.id, { points: newPoints });
+        
+        res.json({ 
+          message: "Chore completion approved", 
+          completion: updatedCompletion,
+          chore,
+          child: { ...child, points: newPoints }
+        });
+      } else {
+        // If rejected, no points are awarded
+        // Also, mark the chore as not completed so it can be done again
+        await storage.updateChore(chore.id, { completed: false });
+        
+        res.json({ 
+          message: "Chore completion rejected", 
+          completion: updatedCompletion,
+          chore: { ...chore, completed: false }
         });
       }
-      
-      // Create a reward claim request (points are not deducted until parent approval)
-      const rewardClaim = await storage.claimReward({
-        rewardId: reward.id,
-        userId: userId,
-        status: "pending"
-      });
-      
-      // Mark the reward as claimed in the request state
-      await storage.updateReward(id, { 
-        claimed: true
-      });
-      
-      res.status(201).json({
-        message: "Reward claim request submitted for parent approval",
-        claim: rewardClaim,
-        reward: reward
-      });
     } catch (error) {
-      console.error("Error claiming reward:", error);
-      res.status(400).json({ message: "Invalid reward claim data" });
+      console.error("Error reviewing chore completion:", error);
+      res.status(400).json({ message: "Invalid chore completion review data" });
     }
   });
   
-  // Get pending reward claims - for parent approval
-  app.get("/api/reward-claims/pending", isParent, async (req: Request, res: Response) => {
+  // Get all achievements
+  app.get("/api/achievements", async (req: Request, res: Response) => {
     try {
-      // Get all users in the family
-      const parentUser = await storage.getUser(req.session.userId!);
-      if (!parentUser) {
-        return res.status(404).json({ message: "Parent user not found" });
-      }
-      
-      const familyMembers = await storage.getUsersByFamilyId(parentUser.familyId);
-      const childUsers = familyMembers.filter(user => user.role === 'child');
-      
-      // No children in family yet
-      if (childUsers.length === 0) {
-        return res.json([]);
-      }
-      
-      // Get pending claims for all children in the family
-      const pendingClaims = [];
-      
-      // Get all pending claims
-      const claims = await storage.getRewardClaimsByStatus("pending");
-      
-      // Filter claims for children in this family and add reward and child details
-      for (const claim of claims) {
-        const child = childUsers.find(child => child.id === claim.userId);
-        if (child) {
-          const reward = await storage.getReward(claim.rewardId);
-          if (reward) {
-            pendingClaims.push({
-              claim,
-              reward,
-              child
-            });
-          }
-        }
-      }
-      
-      res.json(pendingClaims);
+      const userId = req.session.userId || 2; // Default to child user for now
+      const achievements = await storage.getAchievements(userId);
+      res.json(achievements);
     } catch (error) {
-      console.error("Error fetching pending reward claims:", error);
-      res.status(500).json({ message: "Failed to fetch pending reward claims" });
+      res.status(500).json({ message: "Failed to fetch achievements" });
     }
   });
   
-  // Review a reward claim - approve or reject
-  app.post("/api/reward-claims/:id/review", isParent, async (req: Request, res: Response) => {
-    const idSchema = z.object({
-      id: z.coerce.number().int().positive()
-    });
-    
-    const reviewSchema = z.object({
-      status: z.enum(["approved", "rejected"]),
-      feedback: z.string().optional()
-    });
-    
-    try {
-      const { id } = idSchema.parse(req.params);
-      const { status } = reviewSchema.parse(req.body);
-      
-      // Get the claim
-      const claim = await storage.getRewardClaim(id);
-      if (!claim) {
-        return res.status(404).json({ message: "Reward claim not found" });
-      }
-      
-      // Get the reward for point calculation
-      const reward = await storage.getReward(claim.rewardId);
-      if (!reward) {
-        return res.status(404).json({ message: "Reward not found" });
-      }
-      
-      // Update the claim status
-      const updatedClaim = await storage.updateRewardClaim(id, {
-        status,
-        reviewedBy: req.session.userId!,
-        reviewedAt: Math.floor(Date.now() / 1000)
-      });
-      
-      // If approved, deduct points from user
-      let user = await storage.getUser(claim.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if (status === "approved") {
-        // Calculate new points balance
-        const newPoints = Math.max(0, (user.points || 0) - reward.points);
-        
-        // Update user points
-        user = await storage.updateUser(user.id, { points: newPoints }) || user;
-      }
-      
-      res.json({
-        message: `Reward claim ${status}`,
-        claim: updatedClaim,
-        user: user,
-        reward: reward
-      });
-    } catch (error) {
-      console.error("Error reviewing reward claim:", error);
-      res.status(400).json({ message: "Invalid review data" });
-    }
-  });
-  
-  // Serve uploaded files
-  app.use("/uploads", express.static("uploads"));
-  
+  // Create HTTP server
   const httpServer = createServer(app);
   
   return httpServer;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -27,10 +27,34 @@ export default function Rewards() {
     queryKey: ["/api/rewards"],
   });
   
-  const { data: rewardClaims } = useQuery({
+  const { data: rewardClaims = [] } = useQuery<Array<any>>({
     queryKey: ["/api/reward-claims/user"],
     enabled: !!user,
   });
+  
+  // Check for any approved reward claims when the page loads
+  useEffect(() => {
+    if (rewardClaims && rewardClaims.length > 0) {
+      // Find the first approved claim that hasn't been celebrated yet
+      const approvedClaim = rewardClaims.find(
+        claim => claim.status === "approved" && !localStorage.getItem(`celebrated_claim_${claim.id}`)
+      );
+      
+      if (approvedClaim && approvedClaim.reward) {
+        // Set the selected reward
+        setSelectedReward(approvedClaim.reward);
+        
+        // Set the celebration type to "approval"
+        setCelebrationType("approval");
+        
+        // Show the celebration
+        setShowCelebration(true);
+        
+        // Mark this claim as celebrated so we don't show it again
+        localStorage.setItem(`celebrated_claim_${approvedClaim.id}`, "true");
+      }
+    }
+  }, [rewardClaims]);
   
   const claimMutation = useMutation({
     mutationFn: async (rewardId: number) => {
@@ -135,14 +159,29 @@ export default function Rewards() {
                 </div>
               ))
             ) : rewards && rewards.length > 0 ? (
-              rewards.map(reward => (
-                <RewardCard 
-                  key={reward.id} 
-                  reward={reward} 
-                  userPoints={user?.points || 0}
-                  onClaim={handleRewardClaim}
-                />
-              ))
+              rewards
+                // If user is a child, filter out rewards that they've claimed and have approved status
+                .filter(reward => {
+                  if (user?.role !== "child" || !rewardClaims) {
+                    return true;
+                  }
+                  
+                  // Check if this reward has an approved claim
+                  const approvedClaim = rewardClaims.find(
+                    claim => claim.rewardId === reward.id && claim.status === "approved"
+                  );
+                  
+                  // If there's an approved claim, don't show this reward anymore
+                  return !approvedClaim;
+                })
+                .map(reward => (
+                  <RewardCard 
+                    key={reward.id} 
+                    reward={reward} 
+                    userPoints={user?.points || 0}
+                    onClaim={handleRewardClaim}
+                  />
+                ))
             ) : (
               <div className="col-span-2 text-center text-muted-foreground py-8">
                 No rewards found
