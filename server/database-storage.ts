@@ -266,17 +266,34 @@ export class DatabaseStorage implements IStorage {
     const existingUsers = await db.select().from(users);
     
     if (existingUsers.length === 0) {
-      // Create default user with Isabela as the child
-      const [user] = await db.insert(users).values({
-        username: "default",
-        password: "password",
-        isParent: false,
-        childName: "Isabela",
+      console.log("No users found, initializing default data...");
+      
+      // Create a family ID
+      const familyId = 1;
+      
+      // Create parent user with AntuAbad/antuantuantu
+      const [parent] = await db.insert(users).values({
+        username: "AntuAbad",
+        password: "antuantuantu",
+        role: "parent",
+        name: "Parent",
         points: 0,
-        parentPin: "1234"
+        familyId
       }).returning();
       
-      const userId = user.id;
+      // Create child user (Isabela)
+      const [child] = await db.insert(users).values({
+        username: "isabela",
+        password: "123456",
+        role: "child",
+        name: "Isabela",
+        points: 0,
+        parentId: parent.id,
+        familyId
+      }).returning();
+      
+      // Use child ID as our main user ID for the application
+      const userId = child.id;
       
       // Add default chores
       await db.insert(chores).values([
@@ -311,6 +328,16 @@ export class DatabaseStorage implements IStorage {
           frequency: "weekly",
           completed: false,
           userId
+        },
+        {
+          title: "Brush teeth for 2 minutes",
+          points: 5,
+          imageUrl: "",
+          frequency: "daily",
+          completed: false,
+          userId,
+          duration: 2,
+          isDurationChore: true
         }
       ]);
       
@@ -367,6 +394,7 @@ export class DatabaseStorage implements IStorage {
           userId
         }
       ]);
+      console.log("Default data initialized successfully!");
     }
   }
 }

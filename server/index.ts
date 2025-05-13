@@ -64,8 +64,11 @@ app.use((req, res, next) => {
   // Run database migrations
   try {
     await migrateDatabase();
+    // Initialize default data if needed
+    const { storage } = await import('./storage');
+    await storage.initializeDefaultData();
   } catch (error) {
-    console.error("Failed to run database migrations:", error);
+    console.error("Failed to run database migrations or initialize data:", error);
   }
 
   const server = await registerRoutes(app);
