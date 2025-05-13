@@ -91,7 +91,7 @@ function main() {
     const childId = sqlite.prepare(`
       INSERT INTO users (username, password, role, name, points, parent_id, family_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('isabela', '123456', 'child', 'Isabela', 50, parentId, familyId).lastInsertRowid;
+    `).run('isabela', '123456', 'child', 'Isabela', 0, parentId, familyId).lastInsertRowid;
     
     // Use child ID as our main user ID for the application
     const userId = childId;
