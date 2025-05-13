@@ -37,7 +37,9 @@ function main() {
       frequency TEXT NOT NULL,
       completed INTEGER DEFAULT 0,
       user_id INTEGER NOT NULL,
-      created_at INTEGER DEFAULT (unixepoch())
+      created_at INTEGER DEFAULT (unixepoch()),
+      duration INTEGER,
+      is_duration_chore INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS rewards (
@@ -62,7 +64,11 @@ function main() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       chore_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
-      completed_at INTEGER DEFAULT (unixepoch())
+      completed_at INTEGER DEFAULT (unixepoch()),
+      status TEXT DEFAULT 'pending',
+      proof_image_url TEXT,
+      reviewed_by INTEGER,
+      reviewed_at INTEGER
     );
   `);
   
@@ -92,14 +98,15 @@ function main() {
     
     // Add default chores
     const insertChore = sqlite.prepare(`
-      INSERT INTO chores (title, points, image_url, frequency, completed, user_id)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO chores (title, points, image_url, frequency, completed, user_id, duration, is_duration_chore)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    insertChore.run('Make the bed', 5, '', 'daily', 0, userId);
-    insertChore.run('Put away toys', 10, '', 'daily', 0, userId);
-    insertChore.run('Help set the table', 15, '', 'weekly', 0, userId);
-    insertChore.run('Water the plants', 10, '', 'weekly', 0, userId);
+    insertChore.run('Make the bed', 5, '', 'daily', 0, userId, null, 0);
+    insertChore.run('Put away toys', 10, '', 'daily', 0, userId, null, 0);
+    insertChore.run('Help set the table', 15, '', 'weekly', 0, userId, null, 0);
+    insertChore.run('Water the plants', 10, '', 'weekly', 0, userId, null, 0);
+    insertChore.run('Brush teeth for 2 minutes', 5, '', 'daily', 0, userId, 2, 1);
     
     // Add default rewards
     const insertReward = sqlite.prepare(`
