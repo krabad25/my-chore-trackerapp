@@ -85,8 +85,24 @@ export default function Welcome() {
       });
       
       console.log('Child login successful, navigating to dashboard');
-      // Use simple window.location approach for reliable navigation
-      window.location.href = user.redirectUrl || '/dashboard';
+      
+      // Create a hidden form to submit to the target URL as a last-resort method
+      const form = document.createElement('form');
+      form.style.display = 'none';
+      form.method = 'GET';
+      form.action = user.redirectUrl || '/dashboard';
+      document.body.appendChild(form);
+      
+      // First attempt: setTimeout redirect
+      setTimeout(() => {
+        // Second attempt: window.location.replace
+        window.location.replace(user.redirectUrl || '/dashboard');
+        
+        // Third attempt: form submit as fallback
+        setTimeout(() => {
+          form.submit();
+        }, 300);
+      }, 1000);
       
     } catch (error) {
       console.error("Login error:", error);
@@ -145,8 +161,24 @@ export default function Welcome() {
       });
       
       console.log('Parent login successful, navigating to parent page');
-      // Use simple window.location approach for reliable navigation
-      window.location.href = user.redirectUrl || '/parent';
+      
+      // Create a hidden form to submit to the target URL as a last-resort method
+      const form = document.createElement('form');
+      form.style.display = 'none';
+      form.method = 'GET';
+      form.action = user.redirectUrl || '/parent';
+      document.body.appendChild(form);
+      
+      // First attempt: setTimeout redirect
+      setTimeout(() => {
+        // Second attempt: window.location.replace
+        window.location.replace(user.redirectUrl || '/parent');
+        
+        // Third attempt: form submit as fallback
+        setTimeout(() => {
+          form.submit();
+        }, 300);
+      }, 1000);
       
     } catch (error) {
       console.error("Login error:", error);
