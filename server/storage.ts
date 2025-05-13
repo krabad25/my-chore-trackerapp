@@ -47,6 +47,9 @@ export interface IStorage {
   // Chore Completion operations
   completeChore(completion: InsertChoreCompletion): Promise<ChoreCompletion>;
   getChoreCompletions(userId: number): Promise<ChoreCompletion[]>;
+  getChoreCompletion(id: number): Promise<ChoreCompletion | undefined>;
+  getChoreCompletionsByStatus(userId: number, status: string): Promise<ChoreCompletion[]>;
+  updateChoreCompletion(id: number, data: Partial<ChoreCompletion>): Promise<ChoreCompletion | undefined>;
   getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]>;
 }
 

@@ -48,6 +48,10 @@ export const choreCompletions = sqliteTable("chore_completions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   choreId: integer("chore_id").notNull(),
   userId: integer("user_id").notNull(),
+  proofImageUrl: text("proof_image_url"), // Image URL for proof of completion
+  status: text("status").notNull().default("pending"), // "pending", "approved", "rejected"
+  reviewedBy: integer("reviewed_by"), // Parent user ID who reviewed the completion
+  reviewedAt: integer("reviewed_at"), // When the review happened
   completedAt: integer("completed_at").default(sql`(unixepoch())`),
 });
 

@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/chores/:id/complete", async (req: Request, res: Response) => {
+  app.post("/api/chores/:id/complete", upload.single("proofImage"), async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
     });
@@ -336,24 +336,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = idSchema.parse(req.params);
       const chore = await storage.getChore(id);
       
-      if (!chore || chore.userId !== 1) {
+      // Make sure the chore exists
+      if (!chore) {
         return res.status(404).json({ message: "Chore not found" });
       }
       
+      // Check if the user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get the user who is submitting the completion
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if proof image was provided
+      if (!req.file) {
+        return res.status(400).json({ message: "Proof image is required to complete the chore" });
+      }
+      
+      // Save the image and get its URL
+      const filename = `proof-${user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
+      const targetPath = path.join("uploads", filename);
+      
+      fs.renameSync(req.file.path, targetPath);
+      const proofImageUrl = `/uploads/${filename}`;
+      
+      // Create the chore completion record with pending status
       const completion = insertChoreCompletionSchema.parse({
         choreId: id,
-        userId: 1
+        userId: user.id,
+        proofImageUrl,
+        status: "pending" // Mark as pending for parent review
       });
       
       const choreCompletion = await storage.completeChore(completion);
-      const user = await storage.getUser(1);
       
-      res.json({
+      // Update chore as completed
+      const updatedChore = await storage.updateChore(id, { completed: true });
+      
+      res.status(201).json({
+        message: "Chore submitted for review",
         completion: choreCompletion,
-        chore,
+        chore: updatedChore,
         user
       });
     } catch (error) {
+      console.error("Chore completion error:", error);
       res.status(400).json({ message: "Invalid chore completion data" });
     }
   });
@@ -466,6 +497,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(400).json({ message: "Invalid reward claim data" });
+    }
+  });
+  
+  // Get pending chore completions - for parent review
+  app.get("/api/chore-completions/pending", isParent, async (req: Request, res: Response) => {
+    try {
+      // Get all users in the family
+      const parentUser = await storage.getUser(req.session.userId!);
+      if (!parentUser) {
+        return res.status(404).json({ message: "Parent user not found" });
+      }
+      
+      const familyMembers = await storage.getUsersByFamilyId(parentUser.familyId);
+      const childUsers = familyMembers.filter(user => user.role === 'child');
+      
+      // No children in family yet
+      if (childUsers.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get pending completions for all children in the family
+      const pendingCompletions = [];
+      for (const child of childUsers) {
+        const completions = await storage.getChoreCompletionsByStatus(child.id, 'pending');
+        
+        // For each completion, get the associated chore details
+        for (const completion of completions) {
+          const chore = await storage.getChore(completion.choreId);
+          if (chore) {
+            pendingCompletions.push({
+              completion,
+              chore,
+              child
+            });
+          }
+        }
+      }
+      
+      res.json(pendingCompletions);
+    } catch (error) {
+      console.error("Error fetching pending completions:", error);
+      res.status(500).json({ message: "Failed to fetch pending completions" });
+    }
+  });
+  
+  // Review a chore completion - approve or reject
+  app.post("/api/chore-completions/:id/review", isParent, async (req: Request, res: Response) => {
+    const idSchema = z.object({
+      id: z.coerce.number().int().positive()
+    });
+    
+    const reviewSchema = z.object({
+      status: z.enum(["approved", "rejected"]),
+      feedback: z.string().optional()
+    });
+    
+    try {
+      const { id } = idSchema.parse(req.params);
+      const { status, feedback } = reviewSchema.parse(req.body);
+      
+      // Get the completion
+      const completion = await storage.getChoreCompletion(id);
+      if (!completion) {
+        return res.status(404).json({ message: "Completion not found" });
+      }
+      
+      // Update the completion status
+      const updatedCompletion = await storage.updateChoreCompletion(id, {
+        status,
+        reviewedBy: req.session.userId!,
+        reviewedAt: Math.floor(Date.now() / 1000)
+      });
+      
+      // If approved, award points to the child
+      if (status === "approved") {
+        const chore = await storage.getChore(completion.choreId);
+        if (chore) {
+          const user = await storage.getUser(completion.userId);
+          if (user) {
+            const currentPoints = user.points || 0;
+            await storage.updateUser(user.id, {
+              points: currentPoints + chore.points
+            });
+          }
+        }
+      }
+      
+      res.json({
+        message: `Chore completion ${status}`,
+        completion: updatedCompletion
+      });
+    } catch (error) {
+      console.error("Error reviewing completion:", error);
+      res.status(400).json({ message: "Invalid review data" });
     }
   });
   
