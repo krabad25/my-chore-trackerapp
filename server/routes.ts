@@ -535,16 +535,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const now = Math.floor(Date.now() / 1000);
       
-      // IMPORTANT: Force status to "approved" if proof is not required, regardless of user role
-      const completion = insertChoreCompletionSchema.parse({
+      // IMPORTANT: For pending status, do NOT set reviewedBy at all
+      const status = approveImmediately ? "approved" : "pending";
+      
+      const completionData: any = {
         choreId: id,
         userId: user.id,
         proofImageUrl,
-        status: approveImmediately ? "approved" : "pending",
-        reviewedBy: approveImmediately ? user.id : undefined,
-        reviewedAt: approveImmediately ? now : undefined,
+        status,
         completedAt: now
-      });
+      };
+      
+      // Only add review fields if auto-approved
+      if (approveImmediately) {
+        completionData.reviewedBy = user.id;
+        completionData.reviewedAt = now;
+      }
+      
+      console.log("[Chore Complete] Creating chore completion with data:", completionData);
+      
+      const completion = insertChoreCompletionSchema.parse(completionData);
       
       const choreCompletion = await storage.completeChore(completion);
       
@@ -954,8 +964,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get pending completions for all children in the family
       const pendingCompletions = [];
       
-      // Get all pending completions
-      const completions = await storage.getChoreCompletionsByStatus(0, "pending");
+      // Get all pending completions where user ID is one of our child users
+      // First, get all pending completions regardless of user
+      console.log("[Pending Chores] Looking for pending chore completions");
+      const allPendingCompletions = await Promise.all(
+        childUsers.map(child => 
+          storage.getChoreCompletionsByStatus(child.id, "pending")
+        )
+      );
+      
+      // Flatten the array of arrays
+      const completions = allPendingCompletions.flat();
+      
+      console.log("[Pending Chores] Found completions:", completions.length);
       
       // Filter completions for children in this family and add chore and child details
       for (const completion of completions) {
