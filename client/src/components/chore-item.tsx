@@ -119,8 +119,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     setIsLoading(true);
     
     try {
-      let response;
-
+      let data;
+      
       // Prepare the request based on whether proof is required
       if (requiresProof) {
         console.log("Submitting chore completion with proof image for chore ID:", chore.id);
@@ -130,31 +130,29 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         formData.append("proofImage", fileInputRef.current?.files?.[0] || new Blob());
         
         // Use direct fetch for FormData
-        response = await fetch(`/api/chores/${chore.id}/complete`, {
+        const response = await fetch(`/api/chores/${chore.id}/complete`, {
           method: "POST",
           body: formData,
         });
+        
+        // Check response status
+        if (!response.ok) {
+          console.error("Failed to submit chore completion:", response.status, response.statusText);
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+        }
+        
+        // Parse the response data
+        data = await response.json();
       } else {
         console.log("Submitting chore completion without proof for chore ID:", chore.id);
         
-        // Use direct fetch for the simple POST request
-        response = await fetch(`/api/chores/${chore.id}/complete`, {
+        // For non-file uploads, use apiRequest from queryClient
+        data = await apiRequest(`/api/chores/${chore.id}/complete`, {
           method: "POST",
         });
       }
-      
-      // Check response status
-      if (!response.ok) {
-        console.error("Failed to submit chore completion:", response.status, response.statusText);
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
-      }
-      
-      // Don't do anything with the URL right now - we'll handle navigation after processing the response
-      
-      // Parse the response data
-      const data = await response.json();
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/chores"] });
@@ -184,12 +182,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       // Use the redirect URL from the server if available
       if (data && data.redirectUrl) {
         console.log("Redirecting to:", data.redirectUrl);
-        // Use window.location.replace instead of history.pushState
-        // This redirects the user while replacing the current history entry
-        window.history.replaceState({}, '', data.redirectUrl);
-      } else {
-        // If no redirect URL is provided, just make sure we stay on the same page
-        window.history.replaceState({}, '', window.location.href);
+        // Use the wouter navigate function instead of manipulating the history directly
+        // This ensures proper routing within the React application
+        navigate(data.redirectUrl);
       }
     } catch (error) {
       console.error("Failed to complete chore:", error);
@@ -240,6 +235,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         // Prevent any default navigation when clicking the entire card
         e.preventDefault();
         e.stopPropagation();
+        
+        // Don't do anything else when clicking the entire card
+        // Individual elements inside will handle their own clicks
       }}
     >
       <div className="flex items-center">
