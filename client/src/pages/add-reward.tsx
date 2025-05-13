@@ -91,11 +91,24 @@ export default function AddReward() {
         formData.append("points", values.points.toString());
         formData.append("rewardImage", selectedImage);
         
-        await apiRequest("/api/rewards/upload", {
+        console.log("Submitting with image:", {
+          title: values.title,
+          points: values.points,
+          hasImage: !!selectedImage
+        });
+        
+        const response = await fetch("/api/rewards/upload", {
           method: "POST",
           body: formData,
-          // Don't set Content-Type header, browser will set it with boundary for multipart/form-data
+          // Don't set Content-Type header for multipart/form-data
         });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Upload response:", data);
       } else {
         // Use regular JSON payload with imageUrl
         await apiRequest("/api/rewards", {
@@ -115,6 +128,7 @@ export default function AddReward() {
       // Navigate back to rewards page
       navigate("/rewards");
     } catch (error) {
+      console.error("Error adding reward:", error);
       toast({
         title: "Error",
         description: "Failed to add the reward. Please try again.",

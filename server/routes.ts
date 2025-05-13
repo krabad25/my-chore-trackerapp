@@ -548,6 +548,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload reward image
   app.post("/api/rewards/upload", isParent, upload.single("rewardImage"), async (req: Request, res: Response) => {
     try {
+      console.log("Received reward upload request:", req.body);
+      console.log("File:", req.file);
+      
       // Validate request data
       if (!req.body.title || !req.body.points) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -560,21 +563,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let imageUrl = null;
       
-      // If there's an uploaded file, move it to the uploads directory
+      // If there's an uploaded file, save it to the uploads directory
       if (req.file) {
-        const fileName = `reward-${Date.now()}-${req.file.originalname}`;
-        const uploadPath = path.join("uploads", fileName);
+        const originalName = req.file.originalname.replace(/[^a-zA-Z0-9\.]/g, '_');
+        const fileName = `reward-${Date.now()}-${originalName}`;
+        const uploadDir = path.join(process.cwd(), "uploads");
+        const uploadPath = path.join(uploadDir, fileName);
         
         // Ensure uploads directory exists
-        if (!fs.existsSync("uploads")) {
-          fs.mkdirSync("uploads", { recursive: true });
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
         }
         
-        // Copy the file to the uploads directory
-        fs.copyFileSync(req.file.path, uploadPath);
+        // Move the temporary file to the uploads directory
+        fs.renameSync(req.file.path, uploadPath);
         
         // Generate URL for the image
         imageUrl = `/uploads/${fileName}`;
+        console.log("Image saved at:", imageUrl);
       }
       
       // Create the reward with the image URL
@@ -585,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: 1, // Parent user
       });
       
-      res.json(reward);
+      res.status(201).json(reward);
     } catch (error) {
       console.error("Error uploading reward image:", error);
       res.status(500).json({ message: "Failed to upload reward image" });
