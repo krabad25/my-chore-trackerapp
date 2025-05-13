@@ -28,9 +28,8 @@ export default function Navbar() {
       .substring(0, 2);
   };
 
-  // Don't display navbar on welcome and login pages
+  // Don't display navbar on welcome page for unauthenticated users
   if (location === "/" && !isAuthenticated) return null;
-  if (location === "/login") return null;
 
   return (
     <motion.header

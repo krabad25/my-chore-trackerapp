@@ -46,6 +46,8 @@ export function useAuth() {
     queryKey: ['/api/user'],
     retry: false,
     refetchOnWindowFocus: false,
+    refetchInterval: false,
+    staleTime: 60000, // 1 minute
   });
   
   // Handle user data changes
