@@ -71,7 +71,12 @@ export default function ParentMode() {
   
   const handleDeleteReward = async (id: number) => {
     try {
-      await apiRequest("DELETE", `/api/rewards/${id}`, {});
+      await fetch(`/api/rewards/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
       
@@ -80,6 +85,7 @@ export default function ParentMode() {
         description: "The reward has been removed successfully",
       });
     } catch (error) {
+      console.error("Error deleting reward:", error);
       toast({
         title: "Error",
         description: "Failed to delete the reward",
