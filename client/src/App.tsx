@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Navbar from "@/components/navbar";
 import NotFound from "@/pages/not-found";
 import Welcome from "@/pages/welcome";
+import Dashboard from "@/pages/dashboard";
 import Chores from "@/pages/chores";
 import Rewards from "@/pages/rewards";
 import Progress from "@/pages/progress";
@@ -42,7 +43,7 @@ function Router() {
   // Determine home route based on user role
   const HomeComponent = () => {
     if (!isAuthenticated) return <Welcome />;
-    if (isChild) return <Redirect to="/chores" />;
+    if (isChild) return <Redirect to="/dashboard" />;
     return <Redirect to="/parent" />;
   };
   
