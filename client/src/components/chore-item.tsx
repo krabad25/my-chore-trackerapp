@@ -204,6 +204,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             <Loader2 className="h-6 w-6 text-secondary animate-spin" />
           ) : isPending ? (
             <CheckCircle className="h-6 w-6 text-amber-500" />
+          ) : chore.isDurationChore && !chore.completed ? (
+            <Clock className="h-5 w-5 text-secondary" />
           ) : (
             <i className={cn(
               "ri-check-line text-2xl text-secondary transition-opacity", 
@@ -214,11 +216,18 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         
         <div className="flex-grow">
           <h3 className="font-bold text-lg">{chore.title}</h3>
-          <div className="flex items-center">
+          <div className="flex items-center flex-wrap">
             <i className="ri-star-fill text-accent"></i>
-            <span className="ml-1">{chore.points} points</span>
+            <span className="ml-1 mr-2">{chore.points} points</span>
+            
+            {chore.isDurationChore && (
+              <span className="mr-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full flex items-center">
+                <Clock className="h-3 w-3 mr-1" /> {chore.duration || 5} min
+              </span>
+            )}
+            
             {isPending && (
-              <span className="ml-2 text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
                 Waiting for review
               </span>
             )}
@@ -231,6 +240,17 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
           className="w-16 h-16 rounded-lg object-cover"
         />
       </div>
+
+      {/* Timer section for duration chores */}
+      {showTimer && chore.isDurationChore && !showPhotoUpload && (
+        <div className="mt-4 timer-section">
+          <CountdownTimer 
+            durationInMinutes={chore.duration || 5}
+            onComplete={handleTimerComplete}
+            choreTitle={chore.title}
+          />
+        </div>
+      )}
       
       {/* Photo upload section */}
       {showPhotoUpload && (
