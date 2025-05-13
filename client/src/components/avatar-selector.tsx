@@ -5,47 +5,57 @@ import { Button } from "@/components/ui/button";
 import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-// A selection of kid-friendly animal avatar options
+// A selection of kid-friendly animal avatar options with various positive expressions
 const avatarOptions = [
   {
     id: "avatar1",
-    name: "Happy Panda",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Panda&backgroundColor=b6e3f4,c0aede,d1d4f9&eyes=happy&mouth=smile"
+    name: "Curious Panda",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Panda&backgroundColor=b6e3f4,c0aede,d1d4f9&eyes=round&mouth=smile"
   },
   {
     id: "avatar2",
-    name: "Cute Fox",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Fox&backgroundColor=ffdfbf,ffd5dc&eyes=happy&mouth=smile"
+    name: "Mischievous Fox",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Fox&backgroundColor=ffdfbf,ffd5dc&eyes=wink&mouth=smirk"
   },
   {
     id: "avatar3",
-    name: "Friendly Bear",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bear&backgroundColor=d1d4f9,c0aede&eyes=round&mouth=smile"
+    name: "Brave Bear",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bear&backgroundColor=d1d4f9,c0aede&eyes=round&mouth=tongue"
   },
   {
     id: "avatar4",
-    name: "Smiling Cat",
+    name: "Giggling Cat",
     url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Kitty&backgroundColor=c0aede,ffdfbf&eyes=happy&mouth=laugh"
   },
   {
     id: "avatar5",
     name: "Silly Monkey",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Monkey&backgroundColor=b6e3f4,d1d4f9&eyes=wink&mouth=smile"
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Monkey&backgroundColor=b6e3f4,d1d4f9&eyes=wink&mouth=tongue"
   },
   {
     id: "avatar6",
-    name: "Happy Bunny",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bunny&backgroundColor=ffd5dc,ffdfbf&eyes=happy&mouth=smile"
+    name: "Dreamy Bunny",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bunny&backgroundColor=ffd5dc,ffdfbf&eyes=sleepy&mouth=smile"
   },
   {
     id: "avatar7",
-    name: "Playful Puppy",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Puppy&backgroundColor=d1d4f9,b6e3f4&eyes=happy&mouth=smile"
+    name: "Excited Puppy",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Puppy&backgroundColor=d1d4f9,b6e3f4&eyes=wide&mouth=tongue"
   },
   {
     id: "avatar8",
-    name: "Cheerful Duck",
-    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Duck&backgroundColor=b6e3f4,ffdfbf&eyes=happy&mouth=smile"
+    name: "Surprised Duck",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Duck&backgroundColor=b6e3f4,ffdfbf&eyes=wide&mouth=surprised"
+  },
+  {
+    id: "avatar9",
+    name: "Friendly Lion",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Lion&backgroundColor=ffdfbf,ffd5dc&eyes=happy&mouth=smile"
+  },
+  {
+    id: "avatar10",
+    name: "Clever Owl",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Owl&backgroundColor=d1d4f9,c0aede&eyes=round&mouth=smirk"
   }
 ];
 
@@ -96,9 +106,9 @@ export function AvatarSelector({ user, onSelectAvatar, onClose }: AvatarSelector
   
   return (
     <div className="avatar-selector">
-      <h3 className="text-xl font-bold mb-4">Choose Your Avatar</h3>
+      <h3 className="text-2xl font-bold mb-4 text-primary">Choose Your Avatar</h3>
       
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6 max-h-[60vh] overflow-y-auto p-1">
         {avatarOptions.map((avatar) => (
           <motion.div
             key={avatar.id}
@@ -110,14 +120,14 @@ export function AvatarSelector({ user, onSelectAvatar, onClose }: AvatarSelector
             whileTap={{ scale: 0.95 }}
             onClick={() => handleAvatarClick(avatar.url)}
           >
-            <div className="avatar-image relative w-20 h-20 rounded-full overflow-hidden bg-primary/10 mb-2">
+            <div className="avatar-image relative w-16 h-16 rounded-full overflow-hidden bg-primary/10 mb-2 flex items-center justify-center">
               <img 
                 src={avatar.url} 
                 alt={avatar.name}
-                className="w-full h-full object-cover" 
+                className="w-14 h-14" 
               />
             </div>
-            <span className="text-sm text-center">{avatar.name}</span>
+            <span className="text-sm text-center font-medium">{avatar.name}</span>
           </motion.div>
         ))}
       </div>
