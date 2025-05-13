@@ -128,9 +128,12 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         // For file uploads, we need to use direct fetch with FormData
         const formData = new FormData();
         
-        // Get the file from the file input
+        // Get the file from the file input or custom property
         const fileInput = fileInputRef.current;
-        const file = fileInput?.files?.[0];
+        // Check our custom property first for iOS Safari
+        const customFile = (fileInput as any)?._selectedFile;
+        // Fall back to the regular files collection
+        const file = customFile || fileInput?.files?.[0];
         
         if (!file) {
           console.warn("No file selected, using empty blob");
@@ -193,6 +196,12 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       setPhotoPreview(null);
       setShowTimer(false);
       setTimerCompleted(false);
+      
+      // Clear file inputs (both regular and custom property)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+        (fileInputRef.current as any)._selectedFile = null;
+      }
       
       // Show success message
       toast({
@@ -392,34 +401,64 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               </Button>
             </div>
           ) : (
-            <div className="camera-inputs flex flex-col">
-              {/* Direct iPhone-friendly file input shown visibly */}
-              <label 
-                htmlFor="camera-input" 
-                className="photo-placeholder bg-pink-500 text-white rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer mb-3 font-bold"
-                style={{ minHeight: "150px" }}
+            <div className="camera-inputs">
+              {/* Safari-specific camera capture button */}
+              <Button 
+                type="button" 
+                className="w-full py-8 mb-3 text-xl font-bold bg-pink-500 hover:bg-pink-600 text-white"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Create a new input element each time (iOS Safari works better this way)
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  
+                  // For iOS Safari, we need to have these attributes
+                  if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
+                    input.setAttribute('capture', 'camera');
+                  }
+                  
+                  // Handle the file selection
+                  input.onchange = (event) => {
+                    const target = event.target as HTMLInputElement;
+                    const file = target.files?.[0];
+                    if (file) {
+                      // Process the file - reusing our existing handler
+                      const fileReader = new FileReader();
+                      fileReader.onload = () => {
+                        setPhotoPreview(fileReader.result as string);
+                      };
+                      fileReader.readAsDataURL(file);
+                      
+                      // Store the file for form submission
+                      // We'll handle it differently since we have the file already
+                      // Just keep a reference to it
+                      if (fileInputRef.current) {
+                        // Store the file directly in a custom property
+                        (fileInputRef.current as any)._selectedFile = file;
+                      }
+                    }
+                  };
+                  
+                  // Trigger click on this new input
+                  input.click();
+                }}
               >
-                <Camera className="h-16 w-16 text-white mb-3" />
-                <p className="text-center text-lg font-bold text-white">
-                  CLICK HERE TO
-                </p>
-                <p className="text-center text-lg font-bold text-white">
-                  TAKE A PHOTO
-                </p>
-              </label>
+                <div className="flex flex-col items-center justify-center">
+                  <Camera className="h-16 w-16 mb-4" />
+                  <span>TAP TO TAKE A PHOTO</span>
+                  <span className="text-sm mt-1 font-normal">(This will open your camera)</span>
+                </div>
+              </Button>
               
+              {/* Hidden input for form submission */}
               <input
-                id="camera-input"
                 type="file"
                 accept="image/*"
-                className="block w-full text-sm text-slate-500
-                  file:mr-4 file:py-4 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-base file:font-semibold
-                  file:bg-pink-50 file:text-pink-700
-                  hover:file:bg-pink-100"
+                className="hidden"
                 ref={fileInputRef}
-                onChange={handleFileChange}
               />
             </div>
           )}
