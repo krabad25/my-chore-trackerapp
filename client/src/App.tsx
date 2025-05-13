@@ -42,8 +42,8 @@ function Router() {
   // Determine home route based on user role
   const HomeComponent = () => {
     if (!isAuthenticated) return <Welcome />;
-    if (isChild) return <Chores />;
-    return <ParentMode />;
+    if (isChild) return <Redirect to="/chores" />;
+    return <Redirect to="/parent" />;
   };
   
   return (

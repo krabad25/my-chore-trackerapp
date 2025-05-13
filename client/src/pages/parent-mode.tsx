@@ -1,15 +1,11 @@
-import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { useParentAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { User, Chore, Reward } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ChoreApprovalList } from "@/components/chore-approval";
@@ -18,54 +14,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function ParentMode() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [pin, setPin] = useState("");
-  const { isAuthenticated, isParent, logout, isLoading } = useParentAuth();
+  const { isAuthenticated, isParent, logout, isLoading } = useAuth();
   
-  // Parent mode is active if user is authenticated and has parent role
-  const isParentMode = isAuthenticated && isParent;
+  // Check if the user is logged in and is a parent
+  const hasParentAccess = isAuthenticated && isParent;
   
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
     enabled: isAuthenticated,
   });
   
-  const { data: chores } = useQuery<Chore[]>({
+  const { data: chores = [] } = useQuery<Chore[]>({
     queryKey: ["/api/chores"],
     enabled: isAuthenticated,
   });
   
-  const { data: rewards } = useQuery<Reward[]>({
+  const { data: rewards = [] } = useQuery<Reward[]>({
     queryKey: ["/api/rewards"],
     enabled: isAuthenticated,
   });
-  
-  const handlePinSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pin.trim()) {
-      toast({
-        title: "PIN Required",
-        description: "Please enter your parent PIN",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Simplified PIN handling (just check if it's the hardcoded PIN)
-    if (pin === "123456") {
-      toast({
-        title: "Access Granted",
-        description: "Parent mode unlocked",
-      });
-      // Force refresh to reload parent status
-      window.location.reload();
-    } else {
-      toast({
-        title: "Invalid PIN",
-        description: "The PIN you entered is incorrect",
-        variant: "destructive",
-      });
-    }
-  };
   
   const handleDeleteChore = async (id: number) => {
     try {
@@ -73,7 +40,8 @@ export default function ParentMode() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/chores"] });
@@ -98,7 +66,8 @@ export default function ParentMode() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
@@ -124,18 +93,13 @@ export default function ParentMode() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => {
-              if (isAuthenticated) {
-                logout();
-              }
-              navigate("/");
-            }}
+            onClick={() => navigate("/")}
             className="text-white text-2xl"
           >
             <i className="ri-arrow-left-line"></i>
           </Button>
           <h1 className="text-2xl font-bold font-nunito">Parent Controls</h1>
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <Button
               variant="ghost"
               size="icon"
@@ -144,56 +108,46 @@ export default function ParentMode() {
             >
               <i className="ri-logout-box-line"></i>
             </Button>
-          ) : (
-            <div className="w-10"></div> // Empty spacer for alignment
           )}
         </div>
       </header>
       
       <div className="flex-grow p-4 overflow-auto">
         <div className="container mx-auto max-w-md">
-          {!isParentMode ? (
+          {!isAuthenticated ? (
             <motion.div 
-              id="parent-login" 
               className="bg-white rounded-xl shadow-md p-6 mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <h2 className="text-xl font-bold font-nunito text-dark mb-4">Parent Access</h2>
-              
-              {isAuthenticated && !isParent ? (
-                <div className="text-center mb-4">
-                  <p className="text-red-500 mb-2">This area is for parents only.</p>
-                  <Button 
-                    onClick={() => navigate("/")}
-                    className="w-full btn-dark py-3"
-                  >
-                    Go Back
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handlePinSubmit}>
-                  <Input
-                    type="password"
-                    placeholder="Enter PIN"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-xl"
-                    maxLength={6}
-                  />
-                  <Button 
-                    type="submit"
-                    className="w-full btn-dark py-3"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Verifying..." : "Login"}
-                  </Button>
-                </form>
-              )}
+              <p className="text-gray-600 mb-4">You need to be logged in as a parent to access this page.</p>
+              <Button 
+                onClick={() => navigate("/")}
+                className="w-full btn-primary"
+              >
+                Go to Login
+              </Button>
+            </motion.div>
+          ) : !isParent ? (
+            <motion.div 
+              className="bg-white rounded-xl shadow-md p-6 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className="text-xl font-bold font-nunito text-dark mb-4">Access Denied</h2>
+              <p className="text-red-500 mb-4">This area is for parents only.</p>
+              <Button 
+                onClick={() => navigate("/")}
+                className="w-full btn-dark"
+              >
+                Go Back
+              </Button>
             </motion.div>
           ) : (
-            <div id="parent-controls">
+            <>
               {/* Child Info */}
               <motion.div 
                 className="bg-white rounded-xl shadow-md p-6 mb-6"
@@ -204,13 +158,13 @@ export default function ParentMode() {
                 <div className="flex items-center mb-4">
                   <img 
                     src={user?.profilePhoto || "https://i.imgur.com/kx7zcZy.png"} 
-                    alt={`${user?.name || "Isabela"}'s profile photo`} 
+                    alt={`${user?.name || "Parent"}'s profile photo`} 
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h2 className="text-xl font-bold">{user?.name || "Isabela"}'s Account</h2>
+                    <h2 className="text-xl font-bold">{user?.name || "Parent"}</h2>
                     <p className="text-sm text-gray-600">
-                      Current points: <span className="font-bold">{user?.points || 0}</span>
+                      Role: <span className="font-bold">Parent</span>
                     </p>
                   </div>
                 </div>
@@ -240,7 +194,7 @@ export default function ParentMode() {
                       </h2>
                       
                       <div className="space-y-4 mb-4">
-                        {chores?.map(chore => (
+                        {chores.map(chore => (
                           <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg" key={chore.id}>
                             <span className="font-bold">{chore.title}</span>
                             <div className="flex items-center">
@@ -257,7 +211,7 @@ export default function ParentMode() {
                           </div>
                         ))}
                         
-                        {(chores?.length === 0) && (
+                        {(chores.length === 0) && (
                           <p className="text-center text-muted-foreground py-2">
                             No chores found
                           </p>
@@ -280,7 +234,7 @@ export default function ParentMode() {
                       </h2>
                       
                       <div className="space-y-4 mb-4">
-                        {rewards?.map(reward => (
+                        {rewards.map(reward => (
                           <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg" key={reward.id}>
                             <span className="font-bold">{reward.title}</span>
                             <div className="flex items-center">
@@ -297,7 +251,7 @@ export default function ParentMode() {
                           </div>
                         ))}
                         
-                        {(rewards?.length === 0) && (
+                        {(rewards.length === 0) && (
                           <p className="text-center text-muted-foreground py-2">
                             No rewards found
                           </p>
@@ -335,19 +289,11 @@ export default function ParentMode() {
                         <Label htmlFor="celebrations">Celebration Animations</Label>
                         <Switch id="celebrations" defaultChecked />
                       </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span>Change Parent PIN</span>
-                        <Button variant="outline" size="sm" className="text-secondary">
-                          <i className="ri-lock-password-line mr-1"></i>
-                          Change
-                        </Button>
-                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
               </motion.div>
-            </div>
+            </>
           )}
         </div>
       </div>
