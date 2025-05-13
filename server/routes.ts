@@ -521,16 +521,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create the chore completion record
       // Auto-approve if parent OR if proof is not required
-      const approveImmediately = user.role === "parent" || !requiresProof;
+      const isParent = user.role === "parent";
+      const noProofRequired = !requiresProof;
+      const approveImmediately = isParent || noProofRequired;
+      
+      console.log("[Chore Complete] Approval decision:", {
+        userRole: user.role,
+        requiresProof,
+        isParent,
+        noProofRequired,
+        approveImmediately
+      });
+      
       const now = Math.floor(Date.now() / 1000);
       
+      // IMPORTANT: Force status to "approved" if proof is not required, regardless of user role
       const completion = insertChoreCompletionSchema.parse({
         choreId: id,
         userId: user.id,
         proofImageUrl,
         status: approveImmediately ? "approved" : "pending",
         reviewedBy: approveImmediately ? user.id : undefined,
-        reviewedAt: approveImmediately ? now : undefined
+        reviewedAt: approveImmediately ? now : undefined,
+        completedAt: now
       });
       
       const choreCompletion = await storage.completeChore(completion);
