@@ -88,8 +88,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     }
     
     // Check if this chore requires proof
-    // Until the database fully updates, we'll default to true for all chores
-    const requiresProof = true; // Always require proof for now
+    // Use the value from the chore object with a fallback to true for backward compatibility
+    const requiresProof = chore.requiresProof !== undefined ? chore.requiresProof : true;
     
     // If proof is required and we're not showing the photo upload yet, show it
     if (requiresProof && !showPhotoUpload) {
@@ -238,6 +238,13 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             {chore.isDurationChore && (
               <span className="mr-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full flex items-center">
                 <Clock className="h-3 w-3 mr-1" /> {chore.duration || 5} min
+              </span>
+            )}
+            
+            {/* Show proof requirement indicator */}
+            {(chore.requiresProof !== undefined ? chore.requiresProof : true) && (
+              <span className="mr-2 text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full flex items-center">
+                <Camera className="h-3 w-3 mr-1" /> Photo required
               </span>
             )}
             

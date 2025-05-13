@@ -398,8 +398,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Always require proof for now - we'll fix the database later
-      const requiresProof = true;
+      // Check if this chore requires proof
+      const requiresProof = chore.requiresProof !== undefined ? chore.requiresProof : true;
       
       let proofImageUrl = null;
       
