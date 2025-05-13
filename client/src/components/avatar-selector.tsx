@@ -5,47 +5,47 @@ import { Button } from "@/components/ui/button";
 import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-// A selection of kid-friendly avatar options
+// A selection of kid-friendly animal avatar options
 const avatarOptions = [
   {
     id: "avatar1",
-    name: "Cool Kid",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&mouth=smile"
+    name: "Happy Panda",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Panda&backgroundColor=b6e3f4,c0aede,d1d4f9&eyes=happy&mouth=smile"
   },
   {
     id: "avatar2",
-    name: "Happy",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lily&mouth=smile&eyes=happy"
+    name: "Cute Fox",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Fox&backgroundColor=ffdfbf,ffd5dc&eyes=happy&mouth=smile"
   },
   {
     id: "avatar3",
-    name: "Superhero",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Max&mouth=smile&top=shortHair&accessories=round"
+    name: "Friendly Bear",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bear&backgroundColor=d1d4f9,c0aede&eyes=round&mouth=smile"
   },
   {
     id: "avatar4",
-    name: "Princess",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie&hairColor=pink&accessoriesColor=pink"
+    name: "Smiling Cat",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Kitty&backgroundColor=c0aede,ffdfbf&eyes=happy&mouth=laugh"
   },
   {
     id: "avatar5",
-    name: "Scientist",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Einstein&accessories=wayfarers"
+    name: "Silly Monkey",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Monkey&backgroundColor=b6e3f4,d1d4f9&eyes=wink&mouth=smile"
   },
   {
     id: "avatar6",
-    name: "Astronaut",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Star&top=shortHair&accessories=sunglasses"
+    name: "Happy Bunny",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Bunny&backgroundColor=ffd5dc,ffdfbf&eyes=happy&mouth=smile"
   },
   {
     id: "avatar7",
-    name: "Robot",
-    url: "https://api.dicebear.com/7.x/bottts/svg?seed=Robot"
+    name: "Playful Puppy",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Puppy&backgroundColor=d1d4f9,b6e3f4&eyes=happy&mouth=smile"
   },
   {
     id: "avatar8",
-    name: "Animal",
-    url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Fluffy&mouth=smile&top=longHair"
+    name: "Cheerful Duck",
+    url: "https://api.dicebear.com/7.x/thumbs/svg?seed=Duck&backgroundColor=b6e3f4,ffdfbf&eyes=happy&mouth=smile"
   }
 ];
 
