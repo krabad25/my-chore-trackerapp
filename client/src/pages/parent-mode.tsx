@@ -19,7 +19,10 @@ export default function ParentMode() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [pin, setPin] = useState("");
-  const { isAuthenticated, isParentMode, logout, isLoading } = useParentAuth();
+  const { isAuthenticated, isParent, logout, isLoading } = useParentAuth();
+  
+  // Parent mode is active if user is authenticated and has parent role
+  const isParentMode = isAuthenticated && isParent;
   
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -149,7 +152,7 @@ export default function ParentMode() {
       
       <div className="flex-grow p-4 overflow-auto">
         <div className="container mx-auto max-w-md">
-          {!isAuthenticated ? (
+          {!isParentMode ? (
             <motion.div 
               id="parent-login" 
               className="bg-white rounded-xl shadow-md p-6 mb-6"
@@ -158,23 +161,36 @@ export default function ParentMode() {
               transition={{ duration: 0.3 }}
             >
               <h2 className="text-xl font-bold font-nunito text-dark mb-4">Parent Access</h2>
-              <form onSubmit={handlePinSubmit}>
-                <Input
-                  type="password"
-                  placeholder="Enter PIN"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-xl"
-                  maxLength={6}
-                />
-                <Button 
-                  type="submit"
-                  className="w-full btn-dark py-3"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Verifying..." : "Login"}
-                </Button>
-              </form>
+              
+              {isAuthenticated && !isParent ? (
+                <div className="text-center mb-4">
+                  <p className="text-red-500 mb-2">This area is for parents only.</p>
+                  <Button 
+                    onClick={() => navigate("/")}
+                    className="w-full btn-dark py-3"
+                  >
+                    Go Back
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handlePinSubmit}>
+                  <Input
+                    type="password"
+                    placeholder="Enter PIN"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-xl"
+                    maxLength={6}
+                  />
+                  <Button 
+                    type="submit"
+                    className="w-full btn-dark py-3"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Verifying..." : "Login"}
+                  </Button>
+                </form>
+              )}
             </motion.div>
           ) : (
             <div id="parent-controls">
