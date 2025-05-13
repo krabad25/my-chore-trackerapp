@@ -2,10 +2,12 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
+import { AvatarSelector } from "@/components/avatar-selector";
 
 interface ProfilePhotoUploaderProps {
   user: User;
@@ -20,6 +22,7 @@ export function ProfilePhotoUploader({
 }: ProfilePhotoUploaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("upload");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,6 +57,33 @@ export function ProfilePhotoUploader({
       toast({
         title: "Error",
         description: error?.message || "Failed to upload profile photo",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const avatarMutation = useMutation({
+    mutationFn: async (avatarUrl: string) => {
+      return apiRequest<{ message: string; user: User }>(`/api/user/${user.id}/avatar`, {
+        method: "PUT",
+        body: JSON.stringify({ avatarUrl }),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setIsOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update avatar",
         variant: "destructive",
       });
     },
@@ -110,6 +140,10 @@ export function ProfilePhotoUploader({
       fileInputRef.current.value = "";
     }
   };
+  
+  const handleSelectAvatar = async (avatarUrl: string) => {
+    return avatarMutation.mutateAsync(avatarUrl);
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -150,51 +184,68 @@ export function ProfilePhotoUploader({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Update Profile Photo</DialogTitle>
+            <DialogTitle>Update Profile Picture</DialogTitle>
             <DialogDescription>
-              Upload a new profile photo. It will be visible to everyone.
+              Upload a photo or choose an avatar for your profile.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex flex-col items-center gap-4 py-4">
-            <Avatar className="h-24 w-24 border-2 border-primary">
-              {previewUrl ? (
-                <AvatarImage src={previewUrl} alt="Preview" />
-              ) : user.profilePhoto ? (
-                <AvatarImage src={user.profilePhoto} alt={user.name} />
-              ) : (
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {getInitials(user.name)}
-                </AvatarFallback>
-              )}
-            </Avatar>
+          <Tabs defaultValue="upload" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">Upload Photo</TabsTrigger>
+              <TabsTrigger value="avatar">Choose Avatar</TabsTrigger>
+            </TabsList>
             
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-            />
-          </div>
-          
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={uploadMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!previewUrl || uploadMutation.isPending}
-            >
-              {uploadMutation.isPending ? "Uploading..." : "Upload Photo"}
-            </Button>
-          </DialogFooter>
+            <TabsContent value="upload" className="py-4">
+              <div className="flex flex-col items-center gap-4">
+                <Avatar className="h-24 w-24 border-2 border-primary">
+                  {previewUrl ? (
+                    <AvatarImage src={previewUrl} alt="Preview" />
+                  ) : user.profilePhoto ? (
+                    <AvatarImage src={user.profilePhoto} alt={user.name} />
+                  ) : (
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getInitials(user.name)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                />
+                
+                <div className="flex justify-end w-full space-x-2 mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={uploadMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={!previewUrl || uploadMutation.isPending}
+                  >
+                    {uploadMutation.isPending ? "Uploading..." : "Upload Photo"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="avatar" className="py-4">
+              <AvatarSelector 
+                user={user} 
+                onSelectAvatar={handleSelectAvatar}
+                onClose={handleCancel}
+              />
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
