@@ -127,31 +127,61 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         
         // For file uploads, we need to use direct fetch with FormData
         const formData = new FormData();
-        formData.append("proofImage", fileInputRef.current?.files?.[0] || new Blob());
         
-        // Use direct fetch for FormData
-        const response = await fetch(`/api/chores/${chore.id}/complete`, {
-          method: "POST",
-          body: formData,
-        });
+        // Get the file from the file input
+        const fileInput = fileInputRef.current;
+        const file = fileInput?.files?.[0];
         
-        // Check response status
-        if (!response.ok) {
-          console.error("Failed to submit chore completion:", response.status, response.statusText);
-          const errorText = await response.text();
-          console.error("Error response:", errorText);
-          throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+        if (!file) {
+          console.warn("No file selected, using empty blob");
+          formData.append("proofImage", new Blob());
+        } else {
+          console.log("Adding file to form data:", file.name, file.type, file.size);
+          formData.append("proofImage", file);
         }
         
-        // Parse the response data
-        data = await response.json();
+        try {
+          console.log("Sending form data to server...");
+          
+          // Use direct fetch for FormData with explicit credentials
+          const response = await fetch(`/api/chores/${chore.id}/complete`, {
+            method: "POST",
+            body: formData,
+            credentials: "include" // Important for sessions
+          });
+          
+          // Check response status
+          if (!response.ok) {
+            console.error("Failed to submit chore completion:", response.status, response.statusText);
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+            throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+          }
+          
+          console.log("Submission successful, parsing response...");
+          
+          // Parse the response data
+          data = await response.json();
+          console.log("Response data:", data);
+        } catch (err) {
+          console.error("Error during file upload:", err);
+          throw err;
+        }
       } else {
         console.log("Submitting chore completion without proof for chore ID:", chore.id);
         
-        // For non-file uploads, use apiRequest from queryClient
-        data = await apiRequest(`/api/chores/${chore.id}/complete`, {
-          method: "POST",
-        });
+        try {
+          // For non-file uploads, use apiRequest from queryClient
+          data = await apiRequest(`/api/chores/${chore.id}/complete`, {
+            method: "POST",
+            credentials: "include" // Ensure cookies are sent
+          });
+          
+          console.log("Successfully completed chore without proof, response:", data);
+        } catch (err) {
+          console.error("Error completing chore without proof:", err);
+          throw err;
+        }
       }
       
       // Invalidate queries to refresh data
@@ -182,9 +212,13 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       // Use the redirect URL from the server if available
       if (data && data.redirectUrl) {
         console.log("Redirecting to:", data.redirectUrl);
-        // Use the wouter navigate function instead of manipulating the history directly
-        // This ensures proper routing within the React application
-        navigate(data.redirectUrl);
+        
+        // Small delay to ensure all state updates have completed
+        setTimeout(() => {
+          // Use the wouter navigate function instead of manipulating the history directly
+          // This ensures proper routing within the React application
+          navigate(data.redirectUrl);
+        }, 300);
       }
     } catch (error) {
       console.error("Failed to complete chore:", error);
