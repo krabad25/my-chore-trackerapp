@@ -87,8 +87,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       return;
     }
     
-    // Check if this chore requires photo proof
-    const requiresProof = chore.requiresProof !== false; // Default to true if not specified
+    // Check if this chore requires proof
+    // Until the database fully updates, we'll default to true for all chores
+    const requiresProof = true; // Always require proof for now
     
     // If proof is required and we're not showing the photo upload yet, show it
     if (requiresProof && !showPhotoUpload) {
