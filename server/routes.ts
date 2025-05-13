@@ -218,6 +218,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Photo uploaded successfully", user: userWithoutPassword });
   });
   
+  // Update user avatar from URL
+  app.put("/api/user/:id/avatar", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { avatarUrl } = req.body;
+      
+      if (!avatarUrl) {
+        return res.status(400).json({ message: "No avatar URL provided" });
+      }
+      
+      // Ensure the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Security check: ensure users can only update their own avatar (unless they're a parent)
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Current user not found" });
+      }
+      
+      if (currentUser.id !== userId && currentUser.role !== "parent") {
+        return res.status(403).json({ message: "Not authorized to update this user's avatar" });
+      }
+      
+      // Update the user's profile photo with the avatar URL
+      const updatedUser = await storage.updateUser(userId, {
+        profilePhoto: avatarUrl
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update avatar" });
+      }
+      
+      const { password, ...userWithoutPassword } = updatedUser;
+      return res.status(200).json({
+        message: "Avatar updated successfully",
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+      return res.status(500).json({ message: "Failed to update avatar" });
+    }
+  });
+  
   // Update user points - parents can update any child's points
   app.put("/api/user/:id/points", isAuthenticated, async (req: Request, res: Response) => {
     const idSchema = z.object({

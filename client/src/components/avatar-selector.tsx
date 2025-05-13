@@ -51,7 +51,7 @@ const avatarOptions = [
 
 interface AvatarSelectorProps {
   user: User;
-  onSelectAvatar: (avatarUrl: string) => Promise<void>;
+  onSelectAvatar: (avatarUrl: string) => Promise<any>;
   onClose: () => void;
 }
 
