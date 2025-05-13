@@ -106,11 +106,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       return;
     }
     
-    // Make sure we have a photo for proof if required
-    const hasStandardFile = !!fileInputRef.current?.files?.[0];
-    const hasCustomFile = !!(fileInputRef.current && (fileInputRef.current as any)?._selectedFile);
-    
-    if (requiresProof && !hasStandardFile && !hasCustomFile) {
+    // If we have a photoPreview, that's enough to validate the form
+    // This ensures we track the visual state (what the user sees) rather than just the file input state
+    if (requiresProof && !photoPreview) {
       toast({
         title: "Photo required",
         description: "Please take a photo to show you completed the chore",
@@ -131,19 +129,41 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         // For file uploads, we need to use direct fetch with FormData
         const formData = new FormData();
         
-        // Get the file from the file input or custom property
+        // Since we have photoPreview, we need to ensure we have a file to upload
         const fileInput = fileInputRef.current;
         // Check our custom property first for iOS Safari
         const customFile = (fileInput as any)?._selectedFile;
         // Fall back to the regular files collection
         const file = customFile || fileInput?.files?.[0];
         
-        if (!file) {
-          console.warn("No file selected, using empty blob");
-          formData.append("proofImage", new Blob());
-        } else {
+        if (!file && photoPreview) {
+          // If we have a photoPreview but no file, convert the base64 data to a file
+          console.log("Creating file from photoPreview");
+          try {
+            // Convert the base64 string to a Blob
+            const byteString = atob(photoPreview.split(',')[1]);
+            const mimeType = photoPreview.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+              ia[i] = byteString.charCodeAt(i);
+            }
+            const photoBlob = new Blob([ab], { type: mimeType });
+            // Create a File from the Blob
+            const photoFile = new File([photoBlob], "photo-proof.jpg", { type: mimeType });
+            console.log("Created file from preview:", photoFile.name, photoFile.type, photoFile.size);
+            formData.append("proofImage", photoFile);
+          } catch (err) {
+            console.error("Error creating file from preview:", err);
+            // Fallback to empty blob
+            formData.append("proofImage", new Blob());
+          }
+        } else if (file) {
           console.log("Adding file to form data:", file.name, file.type, file.size);
           formData.append("proofImage", file);
+        } else {
+          console.warn("No file available, using empty blob");
+          formData.append("proofImage", new Blob());
         }
         
         try {
