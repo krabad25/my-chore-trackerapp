@@ -398,24 +398,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Check if proof image was provided
-      if (!req.file) {
-        return res.status(400).json({ message: "Proof image is required to complete the chore" });
+      // Check if this chore requires proof
+      const requiresProof = chore.requiresProof !== false; // Default to true if not specified
+      
+      let proofImageUrl = null;
+      
+      // If proof is required, validate and process the proof image
+      if (requiresProof) {
+        // Check if proof image was provided when required
+        if (!req.file) {
+          return res.status(400).json({ message: "Proof image is required to complete this chore" });
+        }
+        
+        // Save the image and get its URL
+        const filename = `proof-${user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
+        const targetPath = path.join("uploads", filename);
+        
+        fs.renameSync(req.file.path, targetPath);
+        proofImageUrl = `/uploads/${filename}`;
       }
       
-      // Save the image and get its URL
-      const filename = `proof-${user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
-      const targetPath = path.join("uploads", filename);
+      // Create the chore completion record
+      // Auto-approve if parent OR if proof is not required
+      const approveImmediately = user.role === "parent" || !requiresProof;
+      const now = Math.floor(Date.now() / 1000);
       
-      fs.renameSync(req.file.path, targetPath);
-      const proofImageUrl = `/uploads/${filename}`;
-      
-      // Create the chore completion record with pending status
       const completion = insertChoreCompletionSchema.parse({
         choreId: id,
         userId: user.id,
         proofImageUrl,
-        status: "pending" // Mark as pending for parent review
+        status: approveImmediately ? "approved" : "pending",
+        reviewedBy: approveImmediately ? user.id : undefined,
+        reviewedAt: approveImmediately ? now : undefined
       });
       
       const choreCompletion = await storage.completeChore(completion);
@@ -423,12 +437,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update chore as completed
       const updatedChore = await storage.updateChore(id, { completed: true });
       
-      res.status(201).json({
-        message: "Chore submitted for review",
-        completion: choreCompletion,
-        chore: updatedChore,
-        user
-      });
+      // Different message based on whether the chore was auto-approved or not
+      const message = approveImmediately 
+        ? "Chore completed successfully!" 
+        : "Chore submitted for review";
+      
+      // If the chore was auto-approved and the user is a child, award points immediately
+      if (approveImmediately && user.role === "child") {
+        // Award points directly to the user
+        const updatedUser = await storage.updateUser(user.id, { 
+          points: (user.points || 0) + chore.points 
+        });
+        
+        res.status(201).json({
+          message,
+          completion: choreCompletion,
+          chore: updatedChore,
+          user: updatedUser || user, // Return updated user if available
+          pointsAwarded: chore.points,
+          autoApproved: true
+        });
+      } else {
+        res.status(201).json({
+          message,
+          completion: choreCompletion,
+          chore: updatedChore,
+          user,
+          autoApproved: approveImmediately
+        });
+      }
     } catch (error) {
       console.error("Chore completion error:", error);
       res.status(400).json({ message: "Invalid chore completion data" });
