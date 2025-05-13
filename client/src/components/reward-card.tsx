@@ -42,32 +42,9 @@ export function RewardCard({ reward, userPoints, onClaim }: RewardCardProps) {
   const handleClaim = async () => {
     if (!canClaim || isLoading) return;
     
-    setIsLoading(true);
-    try {
-      const response = await apiRequest("POST", `/api/rewards/${reward.id}/claim`, {});
-      const data = await response.json();
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
-      toast({
-        title: "Reward Claimed!",
-        description: `You've claimed ${reward.title}`,
-      });
-      
-      // Call the onClaim callback
-      onClaim(reward);
-    } catch (error) {
-      console.error("Failed to claim reward:", error);
-      toast({
-        title: "Could not claim reward",
-        description: "There was a problem claiming your reward.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // Instead of making the API call directly, we call the onClaim callback
+    // to show the confirmation dialog in the parent component
+    onClaim(reward);
   };
 
   return (

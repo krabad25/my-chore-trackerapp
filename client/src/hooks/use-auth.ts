@@ -111,13 +111,21 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      // Immediately clear state to prevent UI issues
+      clearAuthState();
+      
       return apiRequest('/api/auth/logout', { 
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include'
       });
     },
     onSuccess: () => {
-      clearAuthState();
-      queryClient.invalidateQueries();
+      // Navigate to home page after logout
+      window.location.href = '/';
+      
+      // Clear all queries from the cache
+      queryClient.clear();
+      
       toast({
         title: 'Logged Out',
         description: 'You have been logged out successfully.',
@@ -134,6 +142,8 @@ export function useAuth() {
   }, [loginMutation]);
 
   const logout = useCallback(() => {
+    // Already clear auth state immediately on logout click to improve UI responsiveness
+    clearAuthState();
     logoutMutation.mutate();
   }, [logoutMutation]);
 

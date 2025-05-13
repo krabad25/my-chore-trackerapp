@@ -29,7 +29,8 @@ export default function Rewards() {
   const claimMutation = useMutation({
     mutationFn: async (rewardId: number) => {
       return apiRequest(`/api/rewards/${rewardId}/claim`, {
-        method: "POST"
+        method: "POST",
+        credentials: "include"
       });
     },
     onSuccess: () => {
@@ -67,12 +68,14 @@ export default function Rewards() {
   const confirmRewardClaim = () => {
     if (!selectedReward) return;
     
-    if (user && user.points >= selectedReward.points) {
+    const userPoints = user?.points ?? 0;
+    
+    if (userPoints >= selectedReward.points) {
       claimMutation.mutate(selectedReward.id);
     } else {
       toast({
         title: "Not Enough Points",
-        description: `You need ${selectedReward.points - (user?.points || 0)} more points to claim this reward.`,
+        description: `You need ${selectedReward.points - userPoints} more points to claim this reward.`,
         variant: "destructive"
       });
       setShowDialog(false);
