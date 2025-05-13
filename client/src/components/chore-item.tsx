@@ -65,7 +65,13 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     setTimerCompleted(true);
   };
   
-  const handleComplete = async () => {
+  const handleComplete = async (e?: React.MouseEvent | React.FormEvent) => {
+    // If this was triggered by an event, prevent default browser behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     // First, check if already completed or pending
     if (chore.completed || isPending || isLoading) {
       return;
@@ -113,54 +119,38 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     try {
       let response;
 
+      // Prepare the request based on whether proof is required
       if (requiresProof) {
-        // Create FormData for the file upload
+        console.log("Submitting chore completion with proof image for chore ID:", chore.id);
+        
+        // For file uploads, we need to use direct fetch with FormData
         const formData = new FormData();
         formData.append("proofImage", fileInputRef.current?.files?.[0] || new Blob());
         
-        // Use try/catch to debug any issues with the request
-        try {
-          console.log("Submitting chore completion with proof image for chore ID:", chore.id);
-          response = await fetch(`/api/chores/${chore.id}/complete`, {
-            method: "POST",
-            body: formData,
-          });
-          
-          if (!response.ok) {
-            console.error("Failed to submit chore completion:", response.status, response.statusText);
-            const errorText = await response.text();
-            console.error("Error response:", errorText);
-            throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
-          }
-          
-          // We need to prevent the default action of navigating to the response URL
-          window.history.pushState({}, '', window.location.href);
-        } catch (error) {
-          console.error("Error during fetch:", error);
-          throw error;
-        }
+        // Use direct fetch for FormData
+        response = await fetch(`/api/chores/${chore.id}/complete`, {
+          method: "POST",
+          body: formData,
+        });
       } else {
-        // No proof required, just send the completion request
-        try {
-          console.log("Submitting chore completion without proof for chore ID:", chore.id);
-          response = await fetch(`/api/chores/${chore.id}/complete`, {
-            method: "POST",
-          });
-          
-          if (!response.ok) {
-            console.error("Failed to submit chore completion:", response.status, response.statusText);
-            const errorText = await response.text();
-            console.error("Error response:", errorText);
-            throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
-          }
-          
-          // We need to prevent the default action of navigating to the response URL
-          window.history.pushState({}, '', window.location.href);
-        } catch (error) {
-          console.error("Error during fetch:", error);
-          throw error;
-        }
+        console.log("Submitting chore completion without proof for chore ID:", chore.id);
+        
+        // Use direct fetch for the simple POST request
+        response = await fetch(`/api/chores/${chore.id}/complete`, {
+          method: "POST",
+        });
       }
+      
+      // Check response status
+      if (!response.ok) {
+        console.error("Failed to submit chore completion:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
+      }
+      
+      // Explicitly force the URL to remain on the current page
+      window.history.pushState({}, '', window.location.href);
       
       // Parse the response data
       const data = await response.json();
@@ -234,6 +224,11 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       data-chore-id={chore.id}
+      onClick={(e) => {
+        // Prevent any default navigation when clicking the entire card
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <div className="flex items-center">
         <motion.div 
@@ -247,11 +242,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             (isLoading || isPending) && "opacity-50 cursor-not-allowed"
           )}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => {
-            e.preventDefault(); // Prevent any default navigation
-            e.stopPropagation(); // Stop event propagation
-            handleComplete();
-          }}
+          onClick={(e) => handleComplete(e)}
         >
           {isLoading ? (
             <Loader2 className="h-6 w-6 text-secondary animate-spin" />
@@ -331,8 +322,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
                 variant="outline"
                 size="sm"
                 onClick={(e) => {
-                  e.preventDefault(); // Prevent any default navigation
-                  e.stopPropagation(); // Stop event propagation
+                  e.preventDefault();
+                  e.stopPropagation();
                   setPhotoPreview(null);
                   if (fileInputRef.current) {
                     fileInputRef.current.value = "";
@@ -348,8 +339,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               className="photo-placeholder bg-gray-100 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer mb-3"
               style={{ minHeight: "150px" }}
               onClick={(e) => {
-                e.preventDefault(); // Prevent any default navigation
-                e.stopPropagation(); // Stop event propagation
+                e.preventDefault();
+                e.stopPropagation();
                 fileInputRef.current?.click();
               }}
             >
@@ -365,8 +356,8 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
               className="w-full" 
               variant="secondary"
               onClick={(e) => {
-                e.preventDefault(); // Prevent any default navigation
-                e.stopPropagation(); // Stop event propagation
+                e.preventDefault();
+                e.stopPropagation();
                 setShowPhotoUpload(false);
                 setPhotoPreview(null);
               }}
@@ -377,11 +368,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             <Button 
               className="w-full" 
               disabled={!photoPreview || isLoading} 
-              onClick={(e) => {
-                e.preventDefault(); // Prevent any default navigation
-                e.stopPropagation(); // Stop event propagation
-                handleComplete();
-              }}
+              onClick={(e) => handleComplete(e)}
             >
               {isLoading ? (
                 <>
