@@ -27,6 +27,8 @@ export const chores = sqliteTable("chores", {
   // New fields for timed chores
   duration: integer("duration"), // Duration in minutes
   isDurationChore: integer("is_duration_chore", { mode: "boolean" }).default(false),
+  // Whether proof image is required for completion
+  requiresProof: integer("requires_proof", { mode: "boolean" }).default(true),
 });
 
 export const rewards = sqliteTable("rewards", {

@@ -87,15 +87,18 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       return;
     }
     
-    // If we're not showing the photo upload yet, show it
-    if (!showPhotoUpload) {
+    // Check if this chore requires photo proof
+    const requiresProof = chore.requiresProof !== false; // Default to true if not specified
+    
+    // If proof is required and we're not showing the photo upload yet, show it
+    if (requiresProof && !showPhotoUpload) {
       setShowPhotoUpload(true);
       setShowTimer(false); // Hide timer if it was showing
       return;
     }
     
-    // Make sure we have a photo for proof
-    if (!fileInputRef.current?.files?.[0]) {
+    // Make sure we have a photo for proof if required
+    if (requiresProof && !fileInputRef.current?.files?.[0]) {
       toast({
         title: "Photo required",
         description: "Please take a photo to show you completed the chore",
@@ -107,14 +110,23 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     setIsLoading(true);
     
     try {
-      // Create FormData for the file upload
-      const formData = new FormData();
-      formData.append("proofImage", fileInputRef.current.files[0]);
-      
-      const response = await fetch(`/api/chores/${chore.id}/complete`, {
-        method: "POST",
-        body: formData,
-      });
+      let response;
+
+      if (requiresProof) {
+        // Create FormData for the file upload
+        const formData = new FormData();
+        formData.append("proofImage", fileInputRef.current?.files?.[0] || new Blob());
+        
+        response = await fetch(`/api/chores/${chore.id}/complete`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // No proof required, just send the completion request
+        response = await fetch(`/api/chores/${chore.id}/complete`, {
+          method: "POST",
+        });
+      }
       
       if (!response.ok) {
         throw new Error("Failed to submit chore completion");
@@ -135,11 +147,13 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       // Show success message
       toast({
         title: "Chore submitted!",
-        description: "Your chore has been submitted for review",
+        description: requiresProof
+          ? "Your chore has been submitted for review"
+          : "Your chore has been completed!",
       });
       
       // Call the onComplete callback
-      onComplete(chore, 0); // Don't award points yet
+      onComplete(chore, requiresProof ? 0 : chore.points); // Award points immediately if no proof required
     } catch (error) {
       console.error("Failed to complete chore:", error);
       toast({
