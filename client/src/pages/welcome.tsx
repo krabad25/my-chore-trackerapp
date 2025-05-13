@@ -69,7 +69,11 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      navigate("/dashboard");
+      // Add a slight delay to allow the toast to be seen and session to be set
+      setTimeout(() => {
+        console.log("Redirecting to dashboard");
+        window.location.href = "/dashboard";
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -127,7 +131,11 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      navigate("/parent");
+      // Add a slight delay to allow the toast to be seen and session to be set
+      setTimeout(() => {
+        console.log("Redirecting to parent mode");
+        window.location.href = "/parent";
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       toast({
