@@ -132,6 +132,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             console.error("Error response:", errorText);
             throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
           }
+          
+          // We need to prevent the default action of navigating to the response URL
+          window.history.pushState({}, '', window.location.href);
         } catch (error) {
           console.error("Error during fetch:", error);
           throw error;
@@ -150,6 +153,9 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             console.error("Error response:", errorText);
             throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
           }
+          
+          // We need to prevent the default action of navigating to the response URL
+          window.history.pushState({}, '', window.location.href);
         } catch (error) {
           console.error("Error during fetch:", error);
           throw error;
