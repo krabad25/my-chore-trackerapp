@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { Chore, ChoreCompletion } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -17,6 +18,7 @@ interface ChoreItemProps {
 
 export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreItemProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
@@ -149,8 +151,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         throw new Error(`Failed to submit chore completion: ${response.status} ${response.statusText}`);
       }
       
-      // Explicitly force the URL to remain on the current page
-      window.history.pushState({}, '', window.location.href);
+      // Don't do anything with the URL right now - we'll handle navigation after processing the response
       
       // Parse the response data
       const data = await response.json();
@@ -179,6 +180,17 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
       
       // Log success
       console.log("Chore completion submitted successfully:", data);
+      
+      // Use the redirect URL from the server if available
+      if (data && data.redirectUrl) {
+        console.log("Redirecting to:", data.redirectUrl);
+        // Use window.location.replace instead of history.pushState
+        // This redirects the user while replacing the current history entry
+        window.history.replaceState({}, '', data.redirectUrl);
+      } else {
+        // If no redirect URL is provided, just make sure we stay on the same page
+        window.history.replaceState({}, '', window.location.href);
+      }
     } catch (error) {
       console.error("Failed to complete chore:", error);
       toast({

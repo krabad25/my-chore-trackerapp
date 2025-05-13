@@ -553,7 +553,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ 
         message,
         choreCompletion,
-        chore: updatedChore
+        chore: updatedChore,
+        redirectUrl: '/chores'  // Add a redirect URL for the client to use
       });
     } catch (error) {
       console.error("Error completing chore:", error);
