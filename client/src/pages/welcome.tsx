@@ -317,23 +317,28 @@ export default function Welcome() {
               </p>
               
               <div className="flex flex-col gap-2">
+                <h3 className="text-lg font-bold text-gray-800 mb-1">Quick Access:</h3>
                 <Button 
                   variant="default" 
-                  onClick={() => window.location.href = '/parent'} 
-                  className="bg-secondary hover:bg-secondary/90"
+                  onClick={() => window.location.href = '/direct-login/parent'} 
+                  className="bg-secondary hover:bg-secondary/90 py-6"
                 >
-                  <i className="ri-parent-line mr-2"></i>
-                  Get Started as Parent
+                  <i className="ri-parent-line mr-2 text-xl"></i>
+                  <span className="text-base">Get Started as Parent</span>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  onClick={() => window.location.href = '/dashboard'} 
-                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={() => window.location.href = '/direct-login/child'} 
+                  className="border-primary text-primary hover:bg-primary/10 py-6"
                 >
-                  <i className="ri-user-smile-line mr-2"></i>
-                  Get Started as Isabela
+                  <i className="ri-user-smile-line mr-2 text-xl"></i>
+                  <span className="text-base">Get Started as Isabela</span>
                 </Button>
+                
+                <p className="text-xs text-gray-500 mt-1">
+                  Use these buttons for easy access - no login required
+                </p>
               </div>
             </div>
           </CardContent>
