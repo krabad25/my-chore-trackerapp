@@ -35,14 +35,19 @@ export function ProfilePhotoUploader({
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      return apiRequest<{ message: string; user: User }>("/api/user/photo", {
+      // Using fetch directly for multipart form data
+      const response = await fetch("/api/user/photo", {
         method: "POST",
         body: formData,
-        headers: {
-          // Don't set Content-Type for FormData, browser will set it with boundary
-          "Content-Type": undefined as any 
-        }
+        // Don't set Content-Type header - browser will set it with boundary
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error uploading file");
+      }
+      
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
@@ -168,7 +173,15 @@ export function ProfilePhotoUploader({
             </AvatarFallback>
           ) : (
             // For regular image photos
-            <AvatarImage src={user.profilePhoto} alt={user.name} />
+            <AvatarImage 
+              src={user.profilePhoto.startsWith('/') ? user.profilePhoto : `/${user.profilePhoto}`} 
+              alt={user.name}
+              onError={(e) => {
+                // If image fails to load, fallback will show automatically
+                console.error("Profile image failed to load:", user.profilePhoto);
+                e.currentTarget.style.display = 'none';
+              }} 
+            />
           )
         ) : (
           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -217,7 +230,14 @@ export function ProfilePhotoUploader({
                       </AvatarFallback>
                     ) : (
                       // For regular image photos
-                      <AvatarImage src={user.profilePhoto} alt={user.name} />
+                      <AvatarImage 
+                        src={user.profilePhoto.startsWith('/') ? user.profilePhoto : `/${user.profilePhoto}`} 
+                        alt={user.name}
+                        onError={(e) => {
+                          console.error("Profile image failed to load:", user.profilePhoto);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
                     )
                   ) : (
                     <AvatarFallback className="bg-primary text-primary-foreground">

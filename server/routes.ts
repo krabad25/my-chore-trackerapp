@@ -201,33 +201,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update user photo
-  app.post("/api/user/photo", isAuthenticated, upload.single("photo"), async (req: Request, res: Response) => {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
+  app.post("/api/user/photo", isAuthenticated, (req, res, next) => {
+    // Handle multipart form data upload
+    upload.single("photo")(req, res, async (err) => {
+      if (err) {
+        console.error("File upload error:", err);
+        return res.status(400).json({ message: err.message || "File upload error" });
+      }
     
-    const user = await storage.getUser(req.session.userId!);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    const filename = `profile-${Date.now()}${path.extname(req.file.originalname)}`;
-    const targetPath = path.join("uploads", filename);
-    
-    fs.renameSync(req.file.path, targetPath);
-    
-    // Update the user's profile photo
-    const profilePhotoUrl = `/uploads/${filename}`;
-    const updatedUser = await storage.updateUser(user.id, { 
-      profilePhoto: profilePhotoUrl 
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      try {
+        const user = await storage.getUser(req.session.userId!);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        
+        const filename = `profile-${Date.now()}${path.extname(req.file.originalname)}`;
+        const targetPath = path.join("uploads", filename);
+        
+        fs.renameSync(req.file.path, targetPath);
+        
+        // Update the user's profile photo
+        const profilePhotoUrl = `/uploads/${filename}`;
+        const updatedUser = await storage.updateUser(user.id, { 
+          profilePhoto: profilePhotoUrl 
+        });
+        
+        if (!updatedUser) {
+          return res.status(500).json({ message: "Failed to update user photo" });
+        }
+        
+        const { password, ...userWithoutPassword } = updatedUser;
+        res.json({ message: "Photo uploaded successfully", user: userWithoutPassword });
+      } catch (error) {
+        console.error("Photo upload processing error:", error);
+        res.status(500).json({ message: "Error processing photo upload" });
+      }
     });
-    
-    if (!updatedUser) {
-      return res.status(500).json({ message: "Failed to update user photo" });
-    }
-    
-    const { password, ...userWithoutPassword } = updatedUser;
-    res.json({ message: "Photo uploaded successfully", user: userWithoutPassword });
   });
   
   // Update user avatar from URL
