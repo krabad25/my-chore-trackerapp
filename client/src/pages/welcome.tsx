@@ -71,17 +71,18 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      // Create an actual form to handle the redirect (this approach avoids common SPA routing issues)
+      // Use direct window location change with a slight delay
       const redirectTo = user.redirectUrl || '/dashboard';
       console.log('Login successful, redirecting to:', redirectTo);
       
-      // Create and submit a form to navigate to the dashboard
-      const form = document.createElement('form');
-      form.style.display = 'none';
-      form.method = 'GET';
-      form.action = redirectTo;
-      document.body.appendChild(form);
-      form.submit();
+      // Set a flag in sessionStorage to indicate successful login
+      sessionStorage.setItem('login_success', 'true');
+      sessionStorage.setItem('redirect_to', redirectTo);
+      
+      // Use direct navigation after a slight delay to allow the toast to be seen
+      setTimeout(() => {
+        window.location.href = redirectTo;
+      }, 800);
       
     } catch (error) {
       console.error("Login error:", error);
@@ -141,17 +142,18 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      // Create an actual form to handle the redirect (this approach avoids common SPA routing issues)
+      // Use direct window location change with a slight delay
       const redirectTo = user.redirectUrl || '/parent';
       console.log('Login successful, redirecting to:', redirectTo);
       
-      // Create and submit a form to navigate to the parent page
-      const form = document.createElement('form');
-      form.style.display = 'none';
-      form.method = 'GET';
-      form.action = redirectTo;
-      document.body.appendChild(form);
-      form.submit();
+      // Set a flag in sessionStorage to indicate successful login
+      sessionStorage.setItem('login_success', 'true');
+      sessionStorage.setItem('redirect_to', redirectTo);
+      
+      // Use direct navigation after a slight delay to allow the toast to be seen
+      setTimeout(() => {
+        window.location.href = redirectTo;
+      }, 800);
       
     } catch (error) {
       console.error("Login error:", error);
