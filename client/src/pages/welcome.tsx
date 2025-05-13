@@ -50,9 +50,26 @@ export default function Welcome() {
     }
 
     try {
-      const user = await login(childUsername, childPassword);
+      // Old auth method using direct fetch
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: childUsername,
+          password: childPassword,
+        }),
+        credentials: 'include' // Important to include credentials
+      });
       
-      if (user && user.role !== "child") {
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+      
+      const user = await response.json();
+      
+      if (user.role !== "child") {
         toast({
           title: "Wrong Account Type",
           description: "This is a parent account. Please use parent login.",
@@ -61,14 +78,23 @@ export default function Welcome() {
         return;
       }
       
-      if (user) {
-        // If login is successful and the user is a child, navigate to dashboard
-        // The useAuth hook will handle toast notifications
-        console.log('Child login successful, navigating to dashboard');
-        navigate('/dashboard');
-      }
+      // Success!
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${user.name || "Isabela"}!`,
+      });
+      
+      console.log('Child login successful, navigating to dashboard');
+      // Use simple window.location approach for reliable navigation
+      window.location.href = user.redirectUrl || '/dashboard';
+      
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Incorrect username or password",
+        variant: "destructive",
+      });
     }
   };
 

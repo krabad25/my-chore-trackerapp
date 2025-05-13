@@ -49,11 +49,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authorization middleware and route handlers
 
   // Middleware to check if user is authenticated
-  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.session.userId) {
+  const isAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
+    console.log("Authentication check - Session ID:", req.sessionID);
+    console.log("Authentication check - userId in session:", req.session.userId);
+    
+    if (!req.session.userId) {
+      console.log("No userId in session, returning unauthorized");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      // Verify the user exists in the database
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        console.log("User not found in database, returning unauthorized");
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      console.log("User authenticated successfully:", user.username);
       next();
-    } else {
-      res.status(401).json({ message: "Unauthorized" });
+    } catch (error) {
+      console.error("Error in authentication middleware:", error);
+      res.status(500).json({ message: "Server error during authentication" });
     }
   };
 
@@ -79,9 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     // Log the request body for debugging
     console.log("Login request body:", req.body);
+    console.log("Session ID before login:", req.sessionID);
     
     try {
-      const { username, password, redirect } = req.body;
+      const { username, password } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -99,21 +117,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = user.id;
       console.log("User authenticated, session set with userId:", user.id);
       
+      // Add redirect URL based on user role
+      const redirectUrl = user.role === 'parent' ? '/parent' : '/dashboard';
+      
       // Force the session to be saved immediately
       req.session.save(err => {
         if (err) {
           console.error("Error saving session:", err);
+          return res.status(500).json({ message: "Failed to save session" });
         }
         
-        // Return user data (except password) and a redirect URL based on role
+        console.log("Session saved successfully, session ID:", req.sessionID);
+        console.log("Session data:", req.session);
+        
+        // Return user data (except password) and the redirect URL
         const { password: _, ...userData } = user;
         
-        // Add redirect URL based on user role
-        const redirectUrl = user.role === 'parent' ? '/parent' : '/dashboard';
-        
-        res.json({
+        res.status(200).json({
           ...userData,
-          redirectUrl
+          redirectUrl,
+          message: "Login successful"
         });
       });
     } catch (error) {
@@ -160,16 +183,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get user info
   app.get("/api/user", isAuthenticated, async (req: Request, res: Response) => {
+    console.log("GET /api/user called - Session ID:", req.sessionID);
+    console.log("GET /api/user - userId in session:", req.session.userId);
+    
     try {
       const userId = req.session.userId!;
+      console.log("Fetching user with ID:", userId);
       const user = await storage.getUser(userId);
       
       if (!user) {
+        console.log("User not found in database");
         return res.status(404).json({ message: "User not found" });
       }
       
-      res.json(user);
+      console.log("User found:", user.username);
+      
+      // Don't send the password to the client
+      const { password, ...userData } = user;
+      res.json(userData);
     } catch (error) {
+      console.error("Error fetching user:", error);
       res.status(500).json({ message: "Server error" });
     }
   });
