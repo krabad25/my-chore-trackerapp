@@ -156,11 +156,17 @@ export default function ParentMode() {
                 transition={{ duration: 0.3 }}
               >
                 <div className="flex items-center mb-4">
-                  <img 
-                    src={user?.profilePhoto || "https://i.imgur.com/kx7zcZy.png"} 
-                    alt={`${user?.name || "Parent"}'s profile photo`} 
-                    className="w-16 h-16 rounded-full object-cover mr-4"
-                  />
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl mr-4 overflow-hidden">
+                    {user?.profilePhoto ? (
+                      <img 
+                        src={user.profilePhoto}
+                        alt={`${user?.name || "Parent"}'s profile`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{user?.name?.charAt(0) || "P"}</span>
+                    )}
+                  </div>
                   <div>
                     <h2 className="text-xl font-bold">{user?.name || "Parent"}</h2>
                     <p className="text-sm text-gray-600">
