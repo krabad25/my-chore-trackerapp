@@ -1,28 +1,93 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 // Import Isabela's photo
 import isabelaPhoto from "../assets/Isabela.jpg";
 
 export default function Welcome() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const { login, isLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState('child');
   const [profilePhotoUrl] = useState<string>(isabelaPhoto);
+  
+  // Login form states
+  const [childUsername, setChildUsername] = useState("isabela");
+  const [childPassword, setChildPassword] = useState("123456");
+  const [parentUsername, setParentUsername] = useState("AntuAbad");
+  const [parentPassword, setParentPassword] = useState("antuantuantu");
+
+  const handleChildLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!childUsername.trim() || !childPassword.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your username and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const user = await login(childUsername, childPassword);
+    if (user) {
+      if (user.role !== 'child') {
+        toast({
+          title: "Wrong Account Type",
+          description: "This is a parent account. Please use parent login.",
+          variant: "destructive",
+        });
+        return;
+      }
+      navigate("/chores");
+    }
+  };
+
+  const handleParentLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parentUsername.trim() || !parentPassword.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your username and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const user = await login(parentUsername, parentPassword);
+    if (user) {
+      if (user.role !== 'parent') {
+        toast({
+          title: "Wrong Account Type",
+          description: "This is a child account. Please use child login.",
+          variant: "destructive",
+        });
+        return;
+      }
+      navigate("/parent");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-accent to-secondary">
       <motion.div 
-        className="text-center mb-10"
-        animate={{ y: [0, -20, 0] }}
+        className="text-center mb-4"
+        animate={{ y: [0, -10, 0] }}
         transition={{ repeat: Infinity, duration: 2 }}
       >
         <h1 className="text-4xl md:text-5xl font-bold font-nunito text-primary mb-2">
-          Welcome to Chore Chart!
+          Isabela's Chore Chart!
         </h1>
         <p className="text-xl font-comic text-dark">Let's earn some rewards today!</p>
       </motion.div>
       
-      <div className="photo-container relative w-40 h-40 mb-8">
+      <div className="photo-container relative w-32 h-32 mb-6">
         <img 
           src={profilePhotoUrl} 
           alt="Isabela's profile photo"
@@ -31,47 +96,112 @@ export default function Welcome() {
       </div>
       
       <motion.div 
-        className="w-full max-w-md space-y-4"
+        className="w-full max-w-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <Button 
-          onClick={() => navigate("/login")}
-          className="w-full btn-primary text-xl py-6 px-6"
-        >
-          <i className="ri-login-box-line mr-2 text-2xl"></i>
-          Log In
-        </Button>
-        
-        <div className="flex justify-center gap-4 mt-6">
-          <Button 
-            onClick={() => navigate("/login?tab=child")}
-            className="btn-secondary text-md p-3 flex-1"
-            variant="outline"
-          >
-            <i className="ri-user-smile-line mr-2"></i>
-            Kid Login
-          </Button>
-          
-          <Button 
-            onClick={() => navigate("/login?tab=parent")}
-            className="btn-accent text-md p-3 flex-1"
-            variant="outline"
-          >
-            <i className="ri-user-settings-line mr-2"></i>
-            Parent Login
-          </Button>
-        </div>
-        
-        <div className="mt-8 text-center">
-          <p className="text-dark text-opacity-70 text-sm mb-2">
-            A special chore tracker app made for Isabela!
-          </p>
-          <p className="text-dark text-opacity-70 text-xs">
-            Track chores, earn points, and get rewards
-          </p>
-        </div>
+        <Card className="border-2 border-primary/20 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl text-center">Choose your login</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="child">
+                  <span className="flex items-center">
+                    <i className="ri-user-smile-line mr-2"></i>
+                    Kid Login
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="parent">
+                  <span className="flex items-center">
+                    <i className="ri-user-settings-line mr-2"></i>
+                    Parent Login
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Child Login Tab */}
+              <TabsContent value="child" className="mt-2">
+                <form onSubmit={handleChildLogin}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="child-username">Username</Label>
+                      <Input
+                        id="child-username"
+                        placeholder="Enter your username"
+                        value={childUsername}
+                        onChange={(e) => setChildUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="child-password">Password</Label>
+                      <Input
+                        id="child-password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={childPassword}
+                        onChange={(e) => setChildPassword(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Logging in..." : "Log In"}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+
+              {/* Parent Login Tab */}
+              <TabsContent value="parent" className="mt-2">
+                <form onSubmit={handleParentLogin}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="parent-username">Username</Label>
+                      <Input
+                        id="parent-username"
+                        placeholder="Enter your username"
+                        value={parentUsername}
+                        onChange={(e) => setParentUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parent-password">Password</Label>
+                      <Input
+                        id="parent-password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={parentPassword}
+                        onChange={(e) => setParentPassword(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-secondary" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Logging in..." : "Log In"}
+                    </Button>
+                  </div>
+                </form>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="mt-6 text-center">
+              <p className="text-muted-foreground text-sm">
+                A special chore tracker app made for Isabela!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );

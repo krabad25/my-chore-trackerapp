@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Navbar from "@/components/navbar";
 import NotFound from "@/pages/not-found";
 import Welcome from "@/pages/welcome";
-import Login from "@/pages/login";
 import Chores from "@/pages/chores";
 import Rewards from "@/pages/rewards";
 import Progress from "@/pages/progress";
@@ -21,7 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 const ChildRoute = ({ component: Component, ...rest }: any) => {
   const { isAuthenticated, isChild } = useAuth();
   
-  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!isAuthenticated) return <Redirect to="/" />;
   if (!isChild) return <Redirect to="/parent" />;
   
   return <Component {...rest} />;
@@ -31,19 +30,25 @@ const ChildRoute = ({ component: Component, ...rest }: any) => {
 const ParentRoute = ({ component: Component, ...rest }: any) => {
   const { isAuthenticated, isParent } = useAuth();
   
-  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!isAuthenticated) return <Redirect to="/" />;
   if (!isParent) return <Redirect to="/chores" />;
   
   return <Component {...rest} />;
 };
 
 function Router() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isChild } = useAuth();
+  
+  // Determine home route based on user role
+  const HomeComponent = () => {
+    if (!isAuthenticated) return <Welcome />;
+    if (isChild) return <Chores />;
+    return <ParentMode />;
+  };
   
   return (
     <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/" component={isAuthenticated ? Chores : Welcome} />
+      <Route path="/" component={HomeComponent} />
       
       {/* Child Routes */}
       <Route path="/chores">
@@ -69,7 +74,7 @@ function Router() {
       
       {/* Common Routes - Accessible to both parents and children */}
       <Route path="/profile">
-        {isAuthenticated ? <Profile /> : <Redirect to="/login" />}
+        {isAuthenticated ? <Profile /> : <Redirect to="/" />}
       </Route>
       
       <Route component={NotFound} />
