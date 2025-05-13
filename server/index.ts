@@ -9,8 +9,8 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Add health check endpoint
-app.get('/', (req, res) => {
+// Health check endpoint - moved to /health to avoid conflicting with the React app
+app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
