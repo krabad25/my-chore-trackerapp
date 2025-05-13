@@ -27,6 +27,11 @@ export default function Rewards() {
     queryKey: ["/api/rewards"],
   });
   
+  const { data: rewardClaims } = useQuery({
+    queryKey: ["/api/reward-claims/user"],
+    enabled: !!user,
+  });
+  
   const claimMutation = useMutation({
     mutationFn: async (rewardId: number) => {
       return apiRequest(`/api/rewards/${rewardId}/claim`, {
@@ -36,6 +41,9 @@ export default function Rewards() {
     },
     onSuccess: (data) => {
       setShowDialog(false);
+      
+      // Set the celebration type to "reward" (initial claim)
+      setCelebrationType("reward");
       
       // Show celebration for submitting the claim
       setShowCelebration(true);
@@ -209,7 +217,8 @@ export default function Rewards() {
           onClose={() => setShowCelebration(false)}
           childName={user?.name || "Isabela"}
           points={selectedReward.points}
-          choreTitle={`Request for ${selectedReward.title} sent!`}
+          rewardTitle={selectedReward.title}
+          type={celebrationType}
         />
       )}
     </div>
