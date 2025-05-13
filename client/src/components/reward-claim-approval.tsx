@@ -137,14 +137,15 @@ function RewardClaimApprovalCard({ item, onApprove, onReject, isProcessing }: Re
           variant="outline" 
           onClick={onReject} 
           disabled={isProcessing}
-          className="w-full"
+          className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold border border-gray-300"
         >
           {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Decline"}
         </Button>
         <Button 
           onClick={onApprove} 
           disabled={isProcessing}
-          className="w-full bg-primary-500"
+          variant="default"
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold border-0"
         >
           {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Approve"}
         </Button>
