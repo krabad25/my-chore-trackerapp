@@ -332,6 +332,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Chore routes
+  // Get chore completions by user and status
+  app.get("/api/chore-completions/user/:id/:status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const status = req.params.status;
+      
+      // Validate status
+      if (!["pending", "approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status parameter" });
+      }
+      
+      // Check if user is requesting their own completions, or if parent requests child's
+      if (req.session.userId !== userId) {
+        const user = await storage.getUser(req.session.userId!);
+        if (user?.role !== 'parent') {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+      
+      const completions = await storage.getChoreCompletionsByStatus(userId, status);
+      res.json(completions);
+    } catch (error) {
+      console.error("Error fetching user completions:", error);
+      res.status(500).json({ message: "Failed to fetch completions" });
+    }
+  });
+  
   app.get("/api/chores", async (req: Request, res: Response) => {
     const chores = await storage.getChores(1);
     res.json(chores);

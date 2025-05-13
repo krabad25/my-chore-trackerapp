@@ -40,7 +40,7 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <button 
-          onClick={() => navigate(isAuthenticated ? (isChild ? "/chores" : "/parent") : "/")}
+          onClick={() => navigate(isAuthenticated ? (isChild ? "/dashboard" : "/parent") : "/")}
           className="text-lg font-bold bg-transparent border-none cursor-pointer p-0"
         >
           Chore Chart
@@ -91,6 +91,12 @@ export default function Navbar() {
                 
                 {isChild && (
                   <>
+                    <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/dashboard")}>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"></path>
+                      </svg>
+                      <span>Dashboard</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="flex items-center gap-2" onClick={() => navigate("/chores")}>
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                         <path d="M11 4H21V6H11V4ZM11 8H17V10H11V8ZM11 14H21V16H11V14ZM11 18H17V20H11V18ZM3 4H9V10H3V4ZM5 6V8H7V6H5ZM3 14H9V20H3V14ZM5 16V18H7V16H5Z"></path>

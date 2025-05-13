@@ -69,7 +69,7 @@ export default function Welcome() {
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      navigate("/chores");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       toast({

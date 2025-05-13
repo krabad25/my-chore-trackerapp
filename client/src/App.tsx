@@ -52,6 +52,9 @@ function Router() {
       <Route path="/" component={HomeComponent} />
       
       {/* Child Routes */}
+      <Route path="/dashboard">
+        <ChildRoute component={Dashboard} />
+      </Route>
       <Route path="/chores">
         <ChildRoute component={Chores} />
       </Route>
