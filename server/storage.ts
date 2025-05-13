@@ -4,6 +4,7 @@ import {
   rewards,
   achievements,
   choreCompletions,
+  rewardClaims,
   type User,
   type InsertUser,
   type Chore,
@@ -14,6 +15,8 @@ import {
   type InsertAchievement,
   type ChoreCompletion,
   type InsertChoreCompletion,
+  type RewardClaim,
+  type InsertRewardClaim,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -51,6 +54,13 @@ export interface IStorage {
   getChoreCompletionsByStatus(userId: number, status: string): Promise<ChoreCompletion[]>;
   updateChoreCompletion(id: number, data: Partial<ChoreCompletion>): Promise<ChoreCompletion | undefined>;
   getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]>;
+  
+  // Reward Claim operations
+  claimReward(claim: InsertRewardClaim): Promise<RewardClaim>;
+  getRewardClaims(userId: number): Promise<RewardClaim[]>;
+  getRewardClaim(id: number): Promise<RewardClaim | undefined>;
+  getRewardClaimsByStatus(status: string): Promise<RewardClaim[]>;
+  updateRewardClaim(id: number, data: Partial<RewardClaim>): Promise<RewardClaim | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -59,12 +69,14 @@ export class MemStorage implements IStorage {
   private rewards: Map<number, Reward>;
   private achievements: Map<number, Achievement>;
   private choreCompletions: Map<number, ChoreCompletion>;
+  private rewardClaims: Map<number, RewardClaim>;
   
   private userId: number = 1;
   private choreId: number = 1;
   private rewardId: number = 1;
   private achievementId: number = 1;
   private choreCompletionId: number = 1;
+  private rewardClaimId: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -72,6 +84,7 @@ export class MemStorage implements IStorage {
     this.rewards = new Map();
     this.achievements = new Map();
     this.choreCompletions = new Map();
+    this.rewardClaims = new Map();
 
     // Create a family
     const familyId = 1;
@@ -385,12 +398,83 @@ export class MemStorage implements IStorage {
   }
   
   async getCompletionsInDateRange(userId: number, startDate: Date, endDate: Date): Promise<ChoreCompletion[]> {
+    // Convert dates to Unix timestamps for comparison
+    const startTimestamp = Math.floor(startDate.getTime() / 1000);
+    const endTimestamp = Math.floor(endDate.getTime() / 1000);
+    
     return Array.from(this.choreCompletions.values()).filter(
       (completion) => 
         completion.userId === userId && 
-        completion.completedAt >= startDate && 
-        completion.completedAt <= endDate
+        completion.completedAt && 
+        completion.completedAt >= startTimestamp && 
+        completion.completedAt <= endTimestamp
     );
+  }
+  
+  // Reward Claim operations
+  async claimReward(insertClaim: InsertRewardClaim): Promise<RewardClaim> {
+    const id = this.rewardClaimId++;
+    const now = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+    
+    const claim: RewardClaim = {
+      ...insertClaim,
+      id,
+      claimedAt: now,
+      status: "pending", // Default to pending status
+      reviewedBy: null,
+      reviewedAt: null
+    };
+    
+    this.rewardClaims.set(id, claim);
+    
+    // Mark the reward as claimed in the pending state
+    // Points are not deducted yet - they'll be deducted when a parent approves
+    const reward = this.rewards.get(insertClaim.rewardId);
+    if (reward) {
+      this.updateReward(reward.id, { claimed: true });
+    }
+    
+    return claim;
+  }
+  
+  async getRewardClaims(userId: number): Promise<RewardClaim[]> {
+    return Array.from(this.rewardClaims.values()).filter(
+      (claim) => claim.userId === userId
+    );
+  }
+  
+  async getRewardClaim(id: number): Promise<RewardClaim | undefined> {
+    return this.rewardClaims.get(id);
+  }
+  
+  async getRewardClaimsByStatus(status: string): Promise<RewardClaim[]> {
+    return Array.from(this.rewardClaims.values()).filter(
+      (claim) => claim.status === status
+    );
+  }
+  
+  async updateRewardClaim(id: number, data: Partial<RewardClaim>): Promise<RewardClaim | undefined> {
+    const claim = this.rewardClaims.get(id);
+    if (!claim) {
+      return undefined;
+    }
+    
+    const updatedClaim = { ...claim, ...data };
+    this.rewardClaims.set(id, updatedClaim);
+    
+    // If the claim was approved, deduct points from the user
+    if (data.status === "approved" && claim.status !== "approved") {
+      const reward = await this.getReward(claim.rewardId);
+      const user = await this.getUser(claim.userId);
+      
+      if (reward && user && user.points !== null) {
+        // Deduct the points from the user's account
+        const newPoints = Math.max(0, user.points - reward.points);
+        await this.updateUser(user.id, { points: newPoints });
+      }
+    }
+    
+    return updatedClaim;
   }
 }
 

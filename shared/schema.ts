@@ -60,6 +60,17 @@ export const choreCompletions = sqliteTable("chore_completions", {
   completedAt: integer("completed_at").default(sql`(unixepoch())`),
 });
 
+// Table for reward claim requests
+export const rewardClaims = sqliteTable("reward_claims", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  rewardId: integer("reward_id").notNull(),
+  userId: integer("user_id").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "approved", "rejected"
+  claimedAt: integer("claimed_at").default(sql`(unixepoch())`),
+  reviewedBy: integer("reviewed_by"), // Parent user ID who reviewed the claim
+  reviewedAt: integer("reviewed_at"), // When the review happened
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -84,6 +95,11 @@ export const insertChoreCompletionSchema = createInsertSchema(choreCompletions).
   completedAt: true,
 });
 
+export const insertRewardClaimSchema = createInsertSchema(rewardClaims).omit({
+  id: true,
+  claimedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -99,3 +115,6 @@ export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
 
 export type ChoreCompletion = typeof choreCompletions.$inferSelect;
 export type InsertChoreCompletion = z.infer<typeof insertChoreCompletionSchema>;
+
+export type RewardClaim = typeof rewardClaims.$inferSelect;
+export type InsertRewardClaim = z.infer<typeof insertRewardClaimSchema>;
