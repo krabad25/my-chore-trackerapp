@@ -374,8 +374,7 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
         <div className="mt-4 photo-upload-section">
           <input
             type="file"
-            accept="image/*"
-            capture="camera"
+            accept="image/*" 
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}
