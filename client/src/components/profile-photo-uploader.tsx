@@ -161,7 +161,15 @@ export function ProfilePhotoUploader({
         onClick={() => showUploadButton && setIsOpen(true)}
       >
         {user.profilePhoto ? (
-          <AvatarImage src={user.profilePhoto} alt={user.name} />
+          user.profilePhoto.startsWith('data:text/plain') ? (
+            // For emoji avatars
+            <AvatarFallback className="bg-gradient-to-br from-blue-200 to-purple-200 flex items-center justify-center text-2xl">
+              {decodeURIComponent(user.profilePhoto.split(',')[1])}
+            </AvatarFallback>
+          ) : (
+            // For regular image photos
+            <AvatarImage src={user.profilePhoto} alt={user.name} />
+          )
         ) : (
           <AvatarFallback className="bg-primary text-primary-foreground">
             {getInitials(user.name)}
@@ -202,7 +210,15 @@ export function ProfilePhotoUploader({
                   {previewUrl ? (
                     <AvatarImage src={previewUrl} alt="Preview" />
                   ) : user.profilePhoto ? (
-                    <AvatarImage src={user.profilePhoto} alt={user.name} />
+                    user.profilePhoto.startsWith('data:text/plain') ? (
+                      // For emoji avatars
+                      <AvatarFallback className="bg-gradient-to-br from-blue-200 to-purple-200 flex items-center justify-center text-4xl">
+                        {decodeURIComponent(user.profilePhoto.split(',')[1])}
+                      </AvatarFallback>
+                    ) : (
+                      // For regular image photos
+                      <AvatarImage src={user.profilePhoto} alt={user.name} />
+                    )
                   ) : (
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {getInitials(user.name)}
