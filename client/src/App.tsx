@@ -61,30 +61,16 @@ function Router() {
     <Switch>
       <Route path="/" component={HomeComponent} />
       
-      {/* Child Routes */}
-      <Route path="/dashboard">
-        <ChildRoute component={Dashboard} />
-      </Route>
-      <Route path="/chores">
-        <ChildRoute component={Chores} />
-      </Route>
-      <Route path="/rewards">
-        <ChildRoute component={Rewards} />
-      </Route>
-      <Route path="/progress">
-        <ChildRoute component={Progress} />
-      </Route>
+      {/* Child Routes - Temporarily bypass auth for direct access */}
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/chores" component={Chores} />
+      <Route path="/rewards" component={Rewards} />
+      <Route path="/progress" component={Progress} />
       
-      {/* Parent Routes */}
-      <Route path="/parent">
-        <ParentRoute component={ParentMode} />
-      </Route>
-      <Route path="/add-chore">
-        <ParentRoute component={AddChore} />
-      </Route>
-      <Route path="/add-reward">
-        <ParentRoute component={AddReward} />
-      </Route>
+      {/* Parent Routes - Temporarily bypass auth for direct access */}
+      <Route path="/parent" component={ParentMode} />
+      <Route path="/add-chore" component={AddChore} />
+      <Route path="/add-reward" component={AddReward} />
       
       {/* Common Routes - Accessible to both parents and children */}
       <Route path="/profile">

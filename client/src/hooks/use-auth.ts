@@ -11,12 +11,20 @@ interface AuthState {
   userName: string | null;
 }
 
+// Temporary function to simulate authentication
+// This will be replaced once the real auth system is fixed
 const getInitialAuthState = (): AuthState => {
+  // Check URL to determine role
+  const isParentRoute = window.location.pathname.includes('/parent') || 
+                     window.location.pathname.includes('/add-chore') || 
+                     window.location.pathname.includes('/add-reward');
+  
+  // Set simulated auth state based on current route
   return {
-    isAuthenticated: false,
-    userId: null,
-    userRole: null,
-    userName: null,
+    isAuthenticated: true, // Always authenticated for now
+    userId: isParentRoute ? 1 : 2, // 1 for parent, 2 for child
+    userRole: isParentRoute ? 'parent' : 'child',
+    userName: isParentRoute ? 'Parent' : 'Isabela',
   };
 };
 
@@ -41,13 +49,28 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch current user on mount
+  // Simulate user data instead of making API calls
+  // This will be replaced with the real API call once auth is fixed
+  const mockUser: User = {
+    id: globalAuthState.userId || 0,
+    username: globalAuthState.userRole === 'parent' ? 'AntuAbad' : 'isabela',
+    role: globalAuthState.userRole || 'child',
+    name: globalAuthState.userName || 'Isabela',
+    profilePhoto: null,
+    points: 50, // Give some starting points
+    parentId: globalAuthState.userRole === 'parent' ? null : 1,
+    familyId: 1,
+    password: '' // Not used, just needed for the type
+  };
+  
+  // Skip real API call for now
   const { data: user, isLoading: isLoadingUser, isError } = useQuery<User | null>({
     queryKey: ['/api/user'],
+    queryFn: () => Promise.resolve(mockUser),
     retry: false,
     refetchOnWindowFocus: false,
     refetchInterval: false,
-    staleTime: 60000, // 1 minute
+    staleTime: Infinity, // Never refetch
   });
   
   // Handle user data changes

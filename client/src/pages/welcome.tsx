@@ -311,10 +311,30 @@ export default function Welcome() {
               </TabsContent>
             </Tabs>
             
-            <div className="mt-6 text-center">
+            <div className="mt-6 space-y-4 text-center">
               <p className="text-muted-foreground text-sm">
                 A special chore tracker app made for Isabela!
               </p>
+              
+              <div className="flex flex-col gap-2">
+                <Button 
+                  variant="default" 
+                  onClick={() => window.location.href = '/parent'} 
+                  className="bg-secondary hover:bg-secondary/90"
+                >
+                  <i className="ri-parent-line mr-2"></i>
+                  Get Started as Parent
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = '/dashboard'} 
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  <i className="ri-user-smile-line mr-2"></i>
+                  Get Started as Isabela
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
