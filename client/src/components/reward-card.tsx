@@ -11,13 +11,14 @@ interface RewardCardProps {
   reward: Reward;
   userPoints: number;
   onClaim: (reward: Reward) => void;
+  pendingClaim?: boolean;
 }
 
-export function RewardCard({ reward, userPoints, onClaim }: RewardCardProps) {
+export function RewardCard({ reward, userPoints, onClaim, pendingClaim = false }: RewardCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  const canClaim = userPoints >= reward.points && !reward.claimed;
+  const canClaim = userPoints >= reward.points && !reward.claimed && !pendingClaim;
   const pointsNeeded = reward.points - userPoints;
   
   // Placeholder image based on reward type
@@ -138,6 +139,15 @@ export function RewardCard({ reward, userPoints, onClaim }: RewardCardProps) {
               <path d="M20 6L9 17l-5-5"/>
             </svg>
             Already Claimed
+          </div>
+        ) : pendingClaim ? (
+          <div className="w-full mt-4 bg-amber-100 text-amber-700 text-sm font-bold py-2 px-4 rounded-lg text-center flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Waiting for Approval
           </div>
         ) : canClaim ? (
           <Button

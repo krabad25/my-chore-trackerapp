@@ -174,14 +174,22 @@ export default function Rewards() {
                   // If there's an approved claim, don't show this reward anymore
                   return !approvedClaim;
                 })
-                .map(reward => (
-                  <RewardCard 
-                    key={reward.id} 
-                    reward={reward} 
-                    userPoints={user?.points || 0}
-                    onClaim={handleRewardClaim}
-                  />
-                ))
+                .map(reward => {
+                  // Check if this reward has a pending claim
+                  const hasPendingClaim = rewardClaims.some(
+                    claim => claim.rewardId === reward.id && claim.status === "pending"
+                  );
+                  
+                  return (
+                    <RewardCard 
+                      key={reward.id} 
+                      reward={reward} 
+                      userPoints={user?.points || 0}
+                      onClaim={handleRewardClaim}
+                      pendingClaim={hasPendingClaim}
+                    />
+                  );
+                })
             ) : (
               <div className="col-span-2 text-center text-muted-foreground py-8">
                 No rewards found
