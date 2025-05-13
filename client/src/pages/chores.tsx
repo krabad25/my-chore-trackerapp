@@ -147,19 +147,22 @@ export default function Chores() {
             )}
           </div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Button 
-              onClick={() => navigate("/add-chore")}
-              className="add-chore-btn w-full btn-accent text-xl py-4 px-6"
+          {/* Only show Add New Chore button for parent role */}
+          {user?.role === "parent" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
             >
-              <i className="ri-add-circle-line mr-2 text-2xl"></i>
-              Add New Chore
-            </Button>
-          </motion.div>
+              <Button 
+                onClick={() => navigate("/add-chore")}
+                className="add-chore-btn w-full btn-accent text-xl py-4 px-6"
+              >
+                <i className="ri-add-circle-line mr-2 text-2xl"></i>
+                Add New Chore
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
       

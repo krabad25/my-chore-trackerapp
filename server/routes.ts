@@ -503,45 +503,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/rewards/:id/claim", async (req: Request, res: Response) => {
+  app.post("/api/rewards/:id/claim", isAuthenticated, async (req: Request, res: Response) => {
     const idSchema = z.object({
       id: z.coerce.number().int().positive()
     });
     
     try {
       const { id } = idSchema.parse(req.params);
-      const reward = await storage.getReward(id);
       
-      if (!reward || reward.userId !== 1) {
+      // Get the reward
+      const reward = await storage.getReward(id);
+      if (!reward) {
         return res.status(404).json({ message: "Reward not found" });
       }
       
-      const user = await storage.getUser(1);
+      // Get the user requesting the claim
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
+      // Check if user has enough points
       if ((user.points ?? 0) < reward.points) {
         return res.status(400).json({ 
-          message: "Not enough points to claim this reward" 
+          message: "Not enough points to claim this reward",
+          required: reward.points,
+          available: user.points
         });
       }
       
-      // Update the reward to be claimed and deduct points
-      const updatedReward = await storage.updateReward(id, { claimed: true });
+      // Update the reward to be claimed 
+      const updatedReward = await storage.updateReward(id, { 
+        claimed: true,
+        claimedBy: userId,
+        claimedAt: Math.floor(Date.now() / 1000)
+      });
+      
       if (!updatedReward) {
         return res.status(500).json({ message: "Failed to claim reward" });
       }
       
-      const updatedUser = await storage.updateUser(1, { 
+      // Deduct points from the user
+      const updatedUser = await storage.updateUser(userId, { 
         points: (user.points ?? 0) - reward.points 
       });
       
+      // Send back the updated data
       res.json({
+        message: "Reward claimed successfully",
         reward: updatedReward,
-        user: updatedUser
+        user: {
+          id: updatedUser?.id,
+          points: updatedUser?.points
+        }
       });
     } catch (error) {
+      console.error("Error claiming reward:", error);
       res.status(400).json({ message: "Invalid reward claim data" });
     }
   });
