@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 // Import Isabela's photo
 import isabelaPhoto from "../assets/Isabela.jpg";
@@ -23,20 +21,8 @@ export default function Welcome() {
   const [parentUsername, setParentUsername] = useState("AntuAbad");
   const [parentPassword, setParentPassword] = useState("antuantuantu");
   
-  // Use our enhanced auth hook
-  const { login, isLoading, isAuthenticated, isParent } = useAuth();
-  
-  // Check if user is already authenticated and redirect accordingly
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('User already authenticated, redirecting');
-      if (isParent) {
-        navigate('/parent');
-      } else {
-        navigate('/dashboard');
-      }
-    }
-  }, [isAuthenticated, isParent, navigate]);
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChildLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +36,7 @@ export default function Welcome() {
     }
 
     try {
-      // Old auth method using direct fetch
+      setIsLoading(true);
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -60,7 +46,7 @@ export default function Welcome() {
           username: childUsername,
           password: childPassword,
         }),
-        credentials: 'include' // Important to include credentials
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -70,6 +56,7 @@ export default function Welcome() {
       const user = await response.json();
       
       if (user.role !== "child") {
+        setIsLoading(false);
         toast({
           title: "Wrong Account Type",
           description: "This is a parent account. Please use parent login.",
@@ -78,31 +65,13 @@ export default function Welcome() {
         return;
       }
       
-      // Success!
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      console.log('Child login successful, navigating to dashboard');
-      
-      // Create a hidden form to submit to the target URL as a last-resort method
-      const form = document.createElement('form');
-      form.style.display = 'none';
-      form.method = 'GET';
-      form.action = user.redirectUrl || '/dashboard';
-      document.body.appendChild(form);
-      
-      // First attempt: setTimeout redirect
-      setTimeout(() => {
-        // Second attempt: window.location.replace
-        window.location.replace(user.redirectUrl || '/dashboard');
-        
-        // Third attempt: form submit as fallback
-        setTimeout(() => {
-          form.submit();
-        }, 300);
-      }, 1000);
+      // Use navigate instead of window.location to avoid freezing
+      navigate('/dashboard');
       
     } catch (error) {
       console.error("Login error:", error);
@@ -111,6 +80,8 @@ export default function Welcome() {
         description: "Incorrect username or password",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -126,7 +97,7 @@ export default function Welcome() {
     }
 
     try {
-      // Direct fetch approach for consistency
+      setIsLoading(true);
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -136,7 +107,7 @@ export default function Welcome() {
           username: parentUsername,
           password: parentPassword,
         }),
-        credentials: 'include' // Important to include credentials
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -146,6 +117,7 @@ export default function Welcome() {
       const user = await response.json();
       
       if (user.role !== "parent") {
+        setIsLoading(false);
         toast({
           title: "Wrong Account Type",
           description: "This is a child account. Please use child login.",
@@ -154,31 +126,13 @@ export default function Welcome() {
         return;
       }
       
-      // Success!
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      console.log('Parent login successful, navigating to parent page');
-      
-      // Create a hidden form to submit to the target URL as a last-resort method
-      const form = document.createElement('form');
-      form.style.display = 'none';
-      form.method = 'GET';
-      form.action = user.redirectUrl || '/parent';
-      document.body.appendChild(form);
-      
-      // First attempt: setTimeout redirect
-      setTimeout(() => {
-        // Second attempt: window.location.replace
-        window.location.replace(user.redirectUrl || '/parent');
-        
-        // Third attempt: form submit as fallback
-        setTimeout(() => {
-          form.submit();
-        }, 300);
-      }, 1000);
+      // Use navigate instead of window.location to avoid freezing
+      navigate('/parent');
       
     } catch (error) {
       console.error("Login error:", error);
@@ -187,6 +141,8 @@ export default function Welcome() {
         description: "Incorrect username or password",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -265,7 +221,7 @@ export default function Welcome() {
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md" 
+                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md py-2" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Logging in..." : "Log In"}
@@ -301,7 +257,7 @@ export default function Welcome() {
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md" 
+                      className="w-full bg-pink-400 hover:bg-pink-500 text-white rounded-md py-2" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Logging in..." : "Log In"}
