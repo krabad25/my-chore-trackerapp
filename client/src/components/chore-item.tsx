@@ -107,7 +107,10 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
     }
     
     // Make sure we have a photo for proof if required
-    if (requiresProof && !fileInputRef.current?.files?.[0]) {
+    const hasStandardFile = !!fileInputRef.current?.files?.[0];
+    const hasCustomFile = !!(fileInputRef.current && (fileInputRef.current as any)?._selectedFile);
+    
+    if (requiresProof && !hasStandardFile && !hasCustomFile) {
       toast({
         title: "Photo required",
         description: "Please take a photo to show you completed the chore",
@@ -478,19 +481,27 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
             </Button>
             
             <Button 
-              className="w-full" 
+              className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 font-bold text-white" 
               disabled={!photoPreview || isLoading} 
-              onClick={(e) => handleComplete(e)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // For iOS cameras, a slight delay helps ensure the file is fully processed
+                setTimeout(() => {
+                  console.log("Submitting with file:", (fileInputRef.current as any)?._selectedFile);
+                  handleComplete(e);
+                }, 300);
+              }}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  SENDING...
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Submit for Review
+                  <Upload className="mr-2 h-5 w-5" />
+                  SUBMIT CHORE
                 </>
               )}
             </Button>
