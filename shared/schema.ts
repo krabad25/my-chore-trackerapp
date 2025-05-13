@@ -36,8 +36,7 @@ export const rewards = sqliteTable("rewards", {
   points: integer("points").notNull(),
   imageUrl: text("image_url"),
   claimed: integer("claimed", { mode: "boolean" }).default(false),
-  claimedBy: integer("claimed_by"),
-  claimedAt: integer("claimed_at"),
+  // Note: Additional claim tracking fields will be added in a future update
   userId: integer("user_id").notNull(),
   createdAt: integer("created_at").default(sql`(unixepoch())`),
 });

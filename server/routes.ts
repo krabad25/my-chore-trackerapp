@@ -572,9 +572,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the reward to be claimed 
       const updatedReward = await storage.updateReward(id, { 
-        claimed: true,
-        claimedBy: userId,
-        claimedAt: Math.floor(Date.now() / 1000)
+        claimed: true
+        // Note: Additional claim tracking will be added in a future update
       });
       
       if (!updatedReward) {
