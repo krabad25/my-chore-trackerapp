@@ -12,7 +12,7 @@ import {
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export function Navbar() {
+export default function Navbar() {
   const [, navigate] = useLocation();
   const { isAuthenticated, isChild, isParent, user, userName, logout } = useAuth();
   const isMobile = useIsMobile();

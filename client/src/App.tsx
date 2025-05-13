@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import Navbar from "@/components/navbar";
 import NotFound from "@/pages/not-found";
 import Welcome from "@/pages/welcome";
 import Login from "@/pages/login";
@@ -87,7 +88,10 @@ function App() {
       <TooltipProvider>
         <div className="min-h-screen bg-neutral text-dark font-nunito">
           <Toaster />
-          <Router />
+          <Navbar />
+          <div className="pt-16 pb-4"> {/* Add padding for fixed navbar */}
+            <Router />
+          </div>
         </div>
       </TooltipProvider>
     </QueryClientProvider>
