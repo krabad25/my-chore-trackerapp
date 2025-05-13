@@ -6,17 +6,27 @@ const sqlite = new Database('sqlite.db');
 function main() {
   console.log('Setting up database...');
   
-  // Create the tables manually
+  // Delete existing database tables to avoid schema conflicts
+  sqlite.exec(`
+    DROP TABLE IF EXISTS chore_completions;
+    DROP TABLE IF EXISTS achievements;
+    DROP TABLE IF EXISTS rewards;
+    DROP TABLE IF EXISTS chores;
+    DROP TABLE IF EXISTS users;
+  `);
+
+  // Create the tables manually with updated schema
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
-      is_parent INTEGER DEFAULT 0,
-      child_name TEXT,
+      role TEXT NOT NULL,
+      name TEXT NOT NULL,
       profile_photo TEXT,
       points INTEGER DEFAULT 0,
-      parent_pin TEXT
+      parent_id INTEGER,
+      family_id INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS chores (
@@ -65,17 +75,17 @@ function main() {
     // Create a family ID
     const familyId = 1;
     
-    // Create parent user
+    // Create parent user with AntuAbad/antuantuantu
     const parentId = sqlite.prepare(`
       INSERT INTO users (username, password, role, name, points, family_id)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run('parent', 'password123', 'parent', 'Parent', 0, familyId).lastInsertRowid;
+    `).run('AntuAbad', 'antuantuantu', 'parent', 'Parent', 0, familyId).lastInsertRowid;
     
     // Create child user (Isabela)
     const childId = sqlite.prepare(`
       INSERT INTO users (username, password, role, name, points, parent_id, family_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('isabela', 'isabela123', 'child', 'Isabela', 0, parentId, familyId).lastInsertRowid;
+    `).run('isabela', '123456', 'child', 'Isabela', 50, parentId, familyId).lastInsertRowid;
     
     // Use child ID as our main user ID for the application
     const userId = childId;

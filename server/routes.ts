@@ -64,14 +64,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // User authentication routes
   app.post("/api/auth/login", async (req: Request, res: Response) => {
-    const loginSchema = z.object({
-      username: z.string().min(1),
-      password: z.string().min(1)
-    });
+    // Log the request body for debugging
+    console.log("Login request body:", req.body);
     
     try {
-      const { username, password } = loginSchema.parse(req.body);
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      console.log(`Attempting login for username: ${username}`);
       const user = await storage.getUserByUsername(username);
+      console.log("User found:", !!user);
       
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -79,11 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set user ID in session
       req.session.userId = user.id;
+      console.log("User authenticated, session set with userId:", user.id);
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error("Login error:", error);
       res.status(400).json({ message: "Invalid login data" });
     }
   });
