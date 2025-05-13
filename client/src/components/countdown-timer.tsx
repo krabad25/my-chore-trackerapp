@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { formatTime } from "@/lib/utils";
+import confetti from "@/lib/confetti";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import confetti from "@/lib/confetti";
-import { formatTime } from "@/lib/utils";
 
 interface CountdownTimerProps {
   durationInMinutes: number;
@@ -13,144 +14,146 @@ interface CountdownTimerProps {
 
 export function CountdownTimer({ 
   durationInMinutes, 
-  onComplete, 
-  choreTitle 
+  onComplete,
+  choreTitle
 }: CountdownTimerProps) {
-  const totalSeconds = durationInMinutes * 60;
-  const [seconds, setSeconds] = useState<number>(totalSeconds);
-  const [isActive, setIsActive] = useState<boolean>(false);
-  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [totalSeconds, setTotalSeconds] = useState(durationInMinutes * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   
   // Calculate progress percentage
-  const progress = Math.round((seconds / totalSeconds) * 100);
+  const originalSeconds = durationInMinutes * 60;
+  const progress = Math.max(0, Math.min(100, ((originalSeconds - totalSeconds) / originalSeconds) * 100));
   
-  // Format time display (e.g., "15:00")
-  const timeDisplay = formatTime(seconds);
+  // Format the time as mm:ss
+  const formattedTime = formatTime(totalSeconds);
   
-  // Handle timer completion
-  const handleComplete = useCallback(() => {
-    setIsActive(false);
-    setIsCompleted(true);
-    confetti();
-    onComplete();
-  }, [onComplete]);
-  
-  // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isActive && seconds > 0) {
+    if (isRunning && totalSeconds > 0) {
       interval = setInterval(() => {
-        setSeconds(seconds => {
-          const newSeconds = seconds - 1;
-          if (newSeconds <= 0) {
+        setTotalSeconds((prev) => {
+          if (prev <= 1) {
+            // Time's up! 
             if (interval) clearInterval(interval);
-            handleComplete();
+            setIsRunning(false);
+            setShowCelebration(true);
+            confetti();
             return 0;
           }
-          return newSeconds;
+          return prev - 1;
         });
       }, 1000);
-    } else if (seconds === 0) {
-      handleComplete();
+    } else if (totalSeconds === 0 && !showCelebration) {
+      setShowCelebration(true);
+      confetti();
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, seconds, handleComplete]);
+  }, [isRunning, totalSeconds, showCelebration]);
   
-  // Start timer
-  const startTimer = () => {
-    setIsActive(true);
+  const handleStart = () => {
+    setIsRunning(true);
   };
   
-  // Pause timer
-  const pauseTimer = () => {
-    setIsActive(false);
+  const handlePause = () => {
+    setIsRunning(false);
   };
   
-  // Reset timer
-  const resetTimer = () => {
-    setIsActive(false);
-    setSeconds(totalSeconds);
-    setIsCompleted(false);
+  const handleReset = () => {
+    setIsRunning(false);
+    setTotalSeconds(durationInMinutes * 60);
+    setShowCelebration(false);
+  };
+  
+  const handleComplete = () => {
+    onComplete();
   };
   
   return (
-    <div className="w-full rounded-xl bg-white p-5 shadow-md">
-      <h3 className="text-lg font-bold mb-2">{choreTitle}</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        {isCompleted 
-          ? "Great job! You've completed this chore." 
-          : `This activity should take about ${durationInMinutes} minute${durationInMinutes > 1 ? 's' : ''}.`
-        }
-      </p>
+    <div className="countdown-timer bg-white p-5 rounded-xl shadow-md">
+      {/* Timer Display */}
+      <div className="text-center mb-4">
+        <h3 className="text-xl font-bold mb-2">
+          {showCelebration ? "Great job!" : `Time to ${choreTitle}`}
+        </h3>
+        
+        <div className="relative">
+          <motion.div 
+            className="timer-circle w-32 h-32 rounded-full bg-primary/10 mx-auto flex items-center justify-center"
+            animate={{ 
+              scale: isRunning ? [1, 1.05, 1] : 1,
+              boxShadow: isRunning ? 
+                ["0 0 0 0 rgba(var(--primary-rgb), 0.4)", "0 0 0 15px rgba(var(--primary-rgb), 0)", "0 0 0 0 rgba(var(--primary-rgb), 0)"] : 
+                "0 0 0 0 rgba(var(--primary-rgb), 0)",
+            }}
+            transition={{ 
+              repeat: isRunning ? Infinity : 0, 
+              duration: 2
+            }}
+          >
+            <span className="text-3xl font-bold">{formattedTime}</span>
+          </motion.div>
+        </div>
+        
+        <div className="mt-4">
+          <Progress value={progress} className="h-3" />
+        </div>
+      </div>
       
-      {isCompleted ? (
-        <motion.div 
-          className="celebration-message"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex flex-col items-center justify-center py-6">
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="text-4xl mb-4"
-            >
-              🎉
-            </motion.div>
-            <h3 className="text-xl font-bold text-center mb-2">Congratulations!</h3>
-            <p className="text-center text-sm text-muted-foreground mb-4">
-              You successfully completed this timed chore!
-            </p>
-            <Button 
-              className="w-full mt-2" 
-              onClick={() => onComplete()}
-            >
-              Submit for Review
-            </Button>
-          </div>
-        </motion.div>
-      ) : (
-        <>
-          <div className="flex justify-center items-center h-24">
-            <div className="text-4xl font-mono font-bold">{timeDisplay}</div>
-          </div>
-          
-          <Progress value={progress} className="h-3 mb-4" />
-          
-          <div className="flex space-x-2 mt-4">
-            {!isActive ? (
+      {/* Controls */}
+      <div className="flex justify-center space-x-2">
+        {!showCelebration && (
+          <>
+            {!isRunning ? (
               <Button 
-                onClick={startTimer} 
-                className="w-full" 
-                variant="default"
+                className="bg-primary hover:bg-primary/90 text-white px-6"
+                onClick={handleStart}
               >
-                {seconds === totalSeconds ? "Start" : "Continue"}
+                Start
               </Button>
             ) : (
               <Button 
-                onClick={pauseTimer} 
-                className="w-full" 
-                variant="outline"
+                className="bg-amber-500 hover:bg-amber-600 text-white px-6"
+                onClick={handlePause}
               >
                 Pause
               </Button>
             )}
             
             <Button 
-              onClick={resetTimer} 
-              className="w-full" 
               variant="outline" 
-              disabled={seconds === totalSeconds}
+              onClick={handleReset}
             >
               Reset
             </Button>
-          </div>
-        </>
+          </>
+        )}
+        
+        {(showCelebration || totalSeconds === 0) && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button 
+              className="bg-green-500 hover:bg-green-600 text-white px-6"
+              onClick={handleComplete}
+            >
+              I did it! 🎉
+            </Button>
+          </motion.div>
+        )}
+      </div>
+      
+      {/* Instructions */}
+      {!showCelebration && (
+        <p className="text-center text-sm text-gray-500 mt-4">
+          {isRunning ? "Keep going! You're doing great!" : "Press Start when you're ready!"}
+        </p>
       )}
     </div>
   );
