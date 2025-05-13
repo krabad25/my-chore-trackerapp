@@ -24,6 +24,9 @@ export const chores = sqliteTable("chores", {
   completed: integer("completed", { mode: "boolean" }).default(false),
   userId: integer("user_id").notNull(),
   createdAt: integer("created_at").default(sql`(unixepoch())`),
+  // New fields for timed chores
+  duration: integer("duration"), // Duration in minutes
+  isDurationChore: integer("is_duration_chore", { mode: "boolean" }).default(false),
 });
 
 export const rewards = sqliteTable("rewards", {

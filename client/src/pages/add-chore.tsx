@@ -6,13 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Form, 
   FormControl, 
   FormField, 
   FormItem, 
   FormLabel, 
-  FormMessage 
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import {
   Select,
@@ -38,6 +40,9 @@ const formSchema = z.object({
     message: "Please select a frequency.",
   }),
   imageUrl: z.string().optional(),
+  // New fields for timed chores
+  isDurationChore: z.boolean().default(false),
+  duration: z.coerce.number().min(1).max(120).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,13 +59,26 @@ export default function AddChore() {
       points: 5,
       frequency: "daily",
       imageUrl: "",
+      isDurationChore: false,
+      duration: 15,
     },
   });
   
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
+    
+    // Only include duration if this is a timed chore
+    const choreData = {
+      ...values,
+      // If not a duration chore, don't send the duration field
+      duration: values.isDurationChore ? values.duration : undefined
+    };
+    
     try {
-      await apiRequest("POST", "/api/chores", values);
+      await apiRequest("/api/chores", { 
+        method: "POST",
+        body: JSON.stringify(choreData)
+      });
       
       // Invalidate chores query to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/chores"] });
@@ -189,6 +207,59 @@ export default function AddChore() {
                   </FormItem>
                 )}
               />
+
+              {/* Timed Chore Settings */}
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                <h3 className="text-lg font-medium">Timed Chore Settings</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="isDurationChore"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-base">
+                          This is a timed chore
+                        </FormLabel>
+                        <FormDescription>
+                          Child will see a timer counting down when they do this chore
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                {form.watch("isDurationChore") && (
+                  <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-lg">Duration (minutes)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min={1}
+                            max={120}
+                            {...field}
+                            className="text-lg p-6" 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter how long the chore should take (1-120 minutes)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
               
               <div className="flex gap-4 pt-4">
                 <Button 
