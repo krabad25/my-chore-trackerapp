@@ -47,7 +47,19 @@ export default function Navbar() {
         </button>
 
         {isAuthenticated && (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={logout}
+              className="flex items-center gap-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M5 22C4.44772 22 4 21.5523 4 21V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V6H18V4H6V20H18V18H20V21C20 21.5523 19.5523 22 19 22H5ZM18 16V13H11V11H18V8L23 12L18 16Z"></path>
+              </svg>
+              Logout
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-9 w-9 p-0 rounded-full">
@@ -102,8 +114,10 @@ export default function Navbar() {
                   </>
                 )}
                 
-                <DropdownMenuItem className="flex items-center gap-2 text-destructive" onClick={logout}>
-                  <i className="ri-logout-box-line"></i>
+                <DropdownMenuItem className="flex items-center gap-2 text-destructive font-bold" onClick={logout}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M5 22C4.44772 22 4 21.5523 4 21V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V6H18V4H6V20H18V18H20V21C20 21.5523 19.5523 22 19 22H5ZM18 16V13H11V11H18V8L23 12L18 16Z"></path>
+                  </svg>
                   <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
