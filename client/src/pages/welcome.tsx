@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import isabelaPhoto from "../assets/Isabela.jpg";
 export default function Welcome() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('child');
   const [profilePhotoUrl] = useState<string>(isabelaPhoto);
   
@@ -23,6 +22,21 @@ export default function Welcome() {
   const [childPassword, setChildPassword] = useState("123456");
   const [parentUsername, setParentUsername] = useState("AntuAbad");
   const [parentPassword, setParentPassword] = useState("antuantuantu");
+  
+  // Use our enhanced auth hook
+  const { login, isLoading, isAuthenticated, isParent } = useAuth();
+  
+  // Check if user is already authenticated and redirect accordingly
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User already authenticated, redirecting');
+      if (isParent) {
+        navigate('/parent');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, isParent, navigate]);
 
   const handleChildLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,63 +49,26 @@ export default function Welcome() {
       return;
     }
 
-    setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: childUsername,
-          password: childPassword,
-        }),
-        credentials: 'include' // Important to include credentials
-      });
+      const user = await login(childUsername, childPassword);
       
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
-      
-      const user = await response.json();
-      
-      if (user.role !== "child") {
+      if (user && user.role !== "child") {
         toast({
           title: "Wrong Account Type",
           description: "This is a parent account. Please use parent login.",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
       
-      // Success!
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${user.name || "Isabela"}!`,
-      });
-      
-      // Use direct window location change with a slight delay
-      const redirectTo = user.redirectUrl || '/dashboard';
-      console.log('Login successful, redirecting to:', redirectTo);
-      
-      // Set a flag in sessionStorage to indicate successful login
-      sessionStorage.setItem('login_success', 'true');
-      sessionStorage.setItem('redirect_to', redirectTo);
-      
-      // Use direct navigation after a slight delay to allow the toast to be seen
-      setTimeout(() => {
-        window.location.href = redirectTo;
-      }, 800);
-      
+      if (user) {
+        // If login is successful and the user is a child, navigate to dashboard
+        // The useAuth hook will handle toast notifications
+        console.log('Child login successful, navigating to dashboard');
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login Failed",
-        description: "Incorrect username or password",
-        variant: "destructive",
-      });
-      setIsLoading(false);
     }
   };
 
@@ -106,63 +83,26 @@ export default function Welcome() {
       return;
     }
 
-    setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: parentUsername,
-          password: parentPassword,
-        }),
-        credentials: 'include' // Important to include credentials
-      });
+      const user = await login(parentUsername, parentPassword);
       
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
-      
-      const user = await response.json();
-      
-      if (user.role !== "parent") {
+      if (user && user.role !== "parent") {
         toast({
           title: "Wrong Account Type",
           description: "This is a child account. Please use child login.",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
       
-      // Success!
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${user.name || "Parent"}!`,
-      });
-      
-      // Use direct window location change with a slight delay
-      const redirectTo = user.redirectUrl || '/parent';
-      console.log('Login successful, redirecting to:', redirectTo);
-      
-      // Set a flag in sessionStorage to indicate successful login
-      sessionStorage.setItem('login_success', 'true');
-      sessionStorage.setItem('redirect_to', redirectTo);
-      
-      // Use direct navigation after a slight delay to allow the toast to be seen
-      setTimeout(() => {
-        window.location.href = redirectTo;
-      }, 800);
-      
+      if (user) {
+        // If login is successful and the user is a parent, navigate to parent page
+        // The useAuth hook will handle toast notifications
+        console.log('Parent login successful, navigating to parent page');
+        navigate('/parent');
+      }
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login Failed",
-        description: "Incorrect username or password",
-        variant: "destructive",
-      });
-      setIsLoading(false);
     }
   };
 
