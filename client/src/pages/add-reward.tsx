@@ -49,7 +49,10 @@ export default function AddReward() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      await apiRequest("POST", "/api/rewards", values);
+      await apiRequest("/api/rewards", {
+        method: "POST",
+        body: JSON.stringify(values)
+      });
       
       // Invalidate rewards query to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
