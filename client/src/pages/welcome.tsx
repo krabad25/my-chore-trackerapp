@@ -14,7 +14,7 @@ import isabelaPhoto from "../assets/Isabela.jpg";
 export default function Welcome() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('child');
   const [profilePhotoUrl] = useState<string>(isabelaPhoto);
   
@@ -35,9 +35,26 @@ export default function Welcome() {
       return;
     }
 
-    const user = await login(childUsername, childPassword);
-    if (user) {
-      if (user.role !== 'child') {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: childUsername,
+          password: childPassword,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+      
+      const user = await response.json();
+      
+      if (user.role !== "child") {
         toast({
           title: "Wrong Account Type",
           description: "This is a parent account. Please use parent login.",
@@ -45,7 +62,23 @@ export default function Welcome() {
         });
         return;
       }
+      
+      // Success! Navigate to chores page
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${user.name || "Isabela"}!`,
+      });
+      
       navigate("/chores");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Incorrect username or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -60,9 +93,26 @@ export default function Welcome() {
       return;
     }
 
-    const user = await login(parentUsername, parentPassword);
-    if (user) {
-      if (user.role !== 'parent') {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: parentUsername,
+          password: parentPassword,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+      
+      const user = await response.json();
+      
+      if (user.role !== "parent") {
         toast({
           title: "Wrong Account Type",
           description: "This is a child account. Please use child login.",
@@ -70,7 +120,23 @@ export default function Welcome() {
         });
         return;
       }
+      
+      // Success! Navigate to parent page
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${user.name || "Parent"}!`,
+      });
+      
       navigate("/parent");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Incorrect username or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
