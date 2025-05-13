@@ -12,6 +12,7 @@ import Progress from "@/pages/progress";
 import ParentMode from "@/pages/parent-mode";
 import AddChore from "@/pages/add-chore";
 import AddReward from "@/pages/add-reward";
+import Profile from "@/pages/profile";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -63,6 +64,11 @@ function Router() {
       </Route>
       <Route path="/add-reward">
         <ParentRoute component={AddReward} />
+      </Route>
+      
+      {/* Common Routes - Accessible to both parents and children */}
+      <Route path="/profile">
+        {isAuthenticated ? <Profile /> : <Redirect to="/login" />}
       </Route>
       
       <Route component={NotFound} />
