@@ -531,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(rewards);
   });
   
-  app.post("/api/rewards", async (req: Request, res: Response) => {
+  app.post("/api/rewards", isParent, async (req: Request, res: Response) => {
     try {
       const newReward = insertRewardSchema.parse({
         ...req.body,
