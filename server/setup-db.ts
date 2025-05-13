@@ -8,6 +8,7 @@ function main() {
   
   // Delete existing database tables to avoid schema conflicts
   sqlite.exec(`
+    DROP TABLE IF EXISTS reward_claims;
     DROP TABLE IF EXISTS chore_completions;
     DROP TABLE IF EXISTS achievements;
     DROP TABLE IF EXISTS rewards;
@@ -67,6 +68,16 @@ function main() {
       completed_at INTEGER DEFAULT (unixepoch()),
       status TEXT DEFAULT 'pending',
       proof_image_url TEXT,
+      reviewed_by INTEGER,
+      reviewed_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS reward_claims (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reward_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      claimed_at INTEGER DEFAULT (unixepoch()),
+      status TEXT DEFAULT 'pending',
       reviewed_by INTEGER,
       reviewed_at INTEGER
     );

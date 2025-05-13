@@ -364,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(chores);
   });
   
-  app.post("/api/chores", async (req: Request, res: Response) => {
+  app.post("/api/chores", isParent, async (req: Request, res: Response) => {
     try {
       const newChore = insertChoreSchema.parse({
         ...req.body,
@@ -375,6 +375,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(chore);
     } catch (error) {
       res.status(400).json({ message: "Invalid chore data" });
+    }
+  });
+  
+  // Upload chore image
+  app.post("/api/chores/upload", isParent, upload.single("choreImage"), async (req: Request, res: Response) => {
+    try {
+      console.log("Received chore upload request:", req.body);
+      console.log("File:", req.file);
+      
+      // Validate request data
+      if (!req.body.title || !req.body.points || !req.body.frequency) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const points = parseInt(req.body.points);
+      if (isNaN(points) || points < 1 || points > 100) {
+        return res.status(400).json({ message: "Points must be between 1 and 100" });
+      }
+      
+      // Parse other fields
+      const requiresProof = req.body.requiresProof === "true";
+      const isDurationChore = req.body.isDurationChore === "true";
+      let duration = undefined;
+      
+      if (isDurationChore && req.body.duration) {
+        duration = parseInt(req.body.duration);
+        if (isNaN(duration) || duration < 1 || duration > 120) {
+          return res.status(400).json({ message: "Duration must be between 1 and 120 minutes" });
+        }
+      }
+      
+      let imageUrl = "";
+      
+      // If there's an uploaded file, save it to the uploads directory
+      if (req.file) {
+        imageUrl = `/uploads/${req.file.filename}`;
+        console.log("Image saved at:", imageUrl);
+      }
+      
+      // Create the chore with the image URL
+      const chore = await storage.createChore({
+        title: req.body.title,
+        points,
+        frequency: req.body.frequency,
+        imageUrl,
+        userId: 1, // Parent user
+        isDurationChore: isDurationChore || false,
+        duration: duration,
+        requiresProof: requiresProof
+      });
+      
+      res.status(201).json(chore);
+    } catch (error) {
+      console.error("Error uploading chore image:", error);
+      res.status(500).json({ message: "Failed to upload chore image" });
     }
   });
   

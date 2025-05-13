@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { 
   Form, 
   FormControl, 
@@ -27,6 +28,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
 const formSchema = z.object({
   title: z.string().min(3, {
     message: "Chore title must be at least 3 characters.",
@@ -44,7 +48,6 @@ const formSchema = z.object({
   isDurationChore: z.boolean().default(false),
   duration: z.coerce.number().min(1).max(120).optional(),
   // Whether proof image is required for completion
-  // Note: This is UI-only for now, not saved to database
   requiresProof: z.boolean().default(true),
 });
 
@@ -54,6 +57,9 @@ export default function AddChore() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,21 +74,84 @@ export default function AddChore() {
     },
   });
   
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "File too large",
+        description: "Image size should be less than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Only JPEG, PNG and WebP images are supported",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImage(file);
+    const imageUrl = URL.createObjectURL(file);
+    setImagePreview(imageUrl);
+    form.setValue("imageUrl", "");
+  };
+  
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
-    // Only include duration if this is a timed chore
-    const choreData = {
-      ...values,
-      // If not a duration chore, don't send the duration field
-      duration: values.isDurationChore ? values.duration : undefined
-    };
-    
     try {
-      await apiRequest("/api/chores", { 
-        method: "POST",
-        body: JSON.stringify(choreData)
-      });
+      if (selectedImage) {
+        // If we have a selected file, create form data and upload
+        const formData = new FormData();
+        formData.append("title", values.title);
+        formData.append("points", values.points.toString());
+        formData.append("frequency", values.frequency);
+        formData.append("requiresProof", values.requiresProof ? "true" : "false");
+        
+        if (values.isDurationChore && values.duration) {
+          formData.append("isDurationChore", "true");
+          formData.append("duration", values.duration.toString());
+        }
+        
+        formData.append("choreImage", selectedImage);
+        
+        console.log("Submitting chore with image:", {
+          title: values.title,
+          points: values.points,
+          hasImage: !!selectedImage
+        });
+        
+        const response = await fetch("/api/chores/upload", {
+          method: "POST",
+          body: formData,
+          // Don't set Content-Type header for multipart/form-data
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Upload response:", data);
+      } else {
+        // Only include duration if this is a timed chore
+        const choreData = {
+          ...values,
+          // If not a duration chore, don't send the duration field
+          duration: values.isDurationChore ? values.duration : undefined
+        };
+        
+        await apiRequest("/api/chores", { 
+          method: "POST",
+          body: JSON.stringify(choreData)
+        });
+      }
       
       // Invalidate chores query to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/chores"] });
@@ -95,6 +164,7 @@ export default function AddChore() {
       // Navigate back to chores page
       navigate("/chores");
     } catch (error) {
+      console.error("Error adding chore:", error);
       toast({
         title: "Error",
         description: "Failed to add the chore. Please try again.",
@@ -194,23 +264,83 @@ export default function AddChore() {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-lg">Image URL (Optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/image.png" 
-                        {...field} 
-                        className="text-lg p-6"
+              <div className="space-y-3">
+                <Label className="text-lg">Chore Image</Label>
+                <FormDescription>
+                  Adding a picture helps Isabela understand the chore visually
+                </FormDescription>
+                
+                {imagePreview ? (
+                  <div className="flex flex-col gap-2 items-center">
+                    <img 
+                      src={imagePreview} 
+                      alt="Chore preview" 
+                      className="w-32 h-32 object-cover rounded-lg border-2 border-primary"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                    >
+                      Remove Image
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm">Image URL (Optional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://example.com/image.png" 
+                              {...field} 
+                              className="text-lg p-6"
+                              disabled={!!selectedImage}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="text-center my-4">
+                      <p className="text-sm text-gray-500 mb-2">- OR -</p>
+                      <input
+                        type="file"
+                        id="choreImage"
+                        ref={fileInputRef}
+                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                        className="hidden"
+                        onChange={handleImageChange}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Image
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-2">
+                        JPEG, PNG or WebP (max. 10MB)
+                      </p>
+                    </div>
+                  </>
                 )}
-              />
+              </div>
 
               {/* Timed Chore Settings */}
               <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
