@@ -46,20 +46,21 @@ export function useAuth() {
     queryKey: ['/api/user'],
     retry: false,
     refetchOnWindowFocus: false,
-    onSuccess: (data) => {
-      if (data) {
-        setAuthState({
-          isAuthenticated: true,
-          userId: data.id,
-          userRole: data.role,
-          userName: data.name,
-        });
-      }
-    },
-    onError: () => {
+  });
+  
+  // Handle user data changes
+  useEffect(() => {
+    if (user) {
+      setAuthState({
+        isAuthenticated: true,
+        userId: user.id,
+        userRole: user.role,
+        userName: user.name,
+      });
+    } else if (isError) {
       clearAuthState();
     }
-  });
+  }, [user, isError]);
 
   // Subscribe to auth state changes
   useEffect(() => {
@@ -76,11 +77,10 @@ export function useAuth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      const result = await apiRequest('/api/auth/login', {
+      return apiRequest<User>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
-      return result as User;
     },
     onSuccess: (user) => {
       setAuthState({
@@ -109,13 +109,9 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const result = await fetch('/api/auth/logout', { 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      return apiRequest('/api/auth/logout', { 
+        method: 'POST'
       });
-      return await result.json();
     },
     onSuccess: () => {
       clearAuthState();
