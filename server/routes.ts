@@ -82,10 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      res.json({ 
-        user: userWithoutPassword,
-        token: "session-auth" // Placeholder for session-based auth
-      });
+      res.json(userWithoutPassword);
     } catch (error) {
       res.status(400).json({ message: "Invalid login data" });
     }

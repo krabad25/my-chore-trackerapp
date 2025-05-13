@@ -75,8 +75,8 @@ export class MemStorage implements IStorage {
     
     // Create a parent user
     this.createUser({
-      username: "parent",
-      password: "parent123",
+      username: "AntuAbad",
+      password: "antuantuantu",
       role: "parent",
       name: "Parent",
       familyId,

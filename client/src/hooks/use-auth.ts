@@ -76,10 +76,11 @@ export function useAuth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      return apiRequest<User>('/api/auth/login', {
+      const result = await apiRequest('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
+      return result as User;
     },
     onSuccess: (user) => {
       setAuthState({
@@ -108,7 +109,13 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/auth/logout', { method: 'POST' });
+      const result = await fetch('/api/auth/logout', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return await result.json();
     },
     onSuccess: () => {
       clearAuthState();
