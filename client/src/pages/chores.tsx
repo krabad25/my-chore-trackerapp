@@ -6,9 +6,11 @@ import { ChoreItem } from "@/components/chore-item";
 import { Celebration } from "@/components/celebration";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { Chore, User } from "@shared/schema";
+import { Chore, User, ChoreCompletion } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Chores() {
+  const { toast } = useToast();
   const [, navigate] = useLocation();
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedChore, setCompletedChore] = useState<Chore | null>(null);
@@ -21,9 +23,27 @@ export default function Chores() {
     queryKey: ["/api/chores"],
   });
   
+  // Fetch any pending chore completions
+  const { data: pendingCompletions = [] } = useQuery<ChoreCompletion[]>({
+    queryKey: ["/api/chore-completions/pending"],
+    onError: () => {
+      // Silently fail - this isn't critical
+      console.error("Failed to load pending completions");
+    }
+  });
+  
   const handleChoreComplete = (chore: Chore, points: number) => {
     setCompletedChore(chore);
-    setShowCelebration(true);
+    
+    // Only show celebration animation when points are awarded (not for pending submissions)
+    if (points > 0) {
+      setShowCelebration(true);
+    } else {
+      toast({
+        title: "Chore Submitted!",
+        description: "Mom or Dad will review it soon and give you points!",
+      });
+    }
   };
   
   const dailyChores = chores?.filter(chore => chore.frequency === "daily") || [];
@@ -42,7 +62,7 @@ export default function Chores() {
             <i className="ri-arrow-left-line"></i>
           </Button>
           <h1 className="text-2xl font-bold font-nunito">
-            {user?.childName || "Isabela"}'s Chores
+            {user?.name || "Isabela"}'s Chores
           </h1>
           <div className="flex items-center space-x-1">
             <span className="text-xl font-bold">{user?.points || 0}</span>
@@ -80,6 +100,7 @@ export default function Chores() {
                   key={chore.id} 
                   chore={chore} 
                   onComplete={handleChoreComplete}
+                  pendingCompletions={pendingCompletions}
                 />
               ))
             ) : (
@@ -116,6 +137,7 @@ export default function Chores() {
                   key={chore.id} 
                   chore={chore} 
                   onComplete={handleChoreComplete}
+                  pendingCompletions={pendingCompletions}
                 />
               ))
             ) : (
@@ -146,7 +168,7 @@ export default function Chores() {
         <Celebration 
           isOpen={showCelebration}
           onClose={() => setShowCelebration(false)}
-          childName={user?.childName || "Isabela"}
+          childName={user?.name || "Isabela"}
           points={completedChore.points}
           choreTitle={completedChore.title}
         />
