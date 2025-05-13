@@ -4,6 +4,7 @@ import {
   rewards,
   achievements,
   choreCompletions,
+  rewardClaims,
   type User,
   type InsertUser,
   type Chore,
@@ -14,6 +15,8 @@ import {
   type InsertAchievement,
   type ChoreCompletion,
   type InsertChoreCompletion,
+  type RewardClaim,
+  type InsertRewardClaim,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, between } from "drizzle-orm";
@@ -204,6 +207,57 @@ export class DatabaseStorage implements IStorage {
           between(choreCompletions.completedAt, startTimestamp, endTimestamp)
         )
       );
+  }
+  
+  // Reward Claim operations
+  async claimReward(insertClaim: InsertRewardClaim): Promise<RewardClaim> {
+    // Create the reward claim
+    const [claim] = await db
+      .insert(rewardClaims)
+      .values({
+        ...insertClaim,
+        status: "pending"
+      })
+      .returning();
+    
+    // Update the reward status
+    await db
+      .update(rewards)
+      .set({ claimed: true })
+      .where(eq(rewards.id, insertClaim.rewardId));
+    
+    return claim;
+  }
+  
+  async getRewardClaims(userId: number): Promise<RewardClaim[]> {
+    return await db
+      .select()
+      .from(rewardClaims)
+      .where(eq(rewardClaims.userId, userId));
+  }
+  
+  async getRewardClaim(id: number): Promise<RewardClaim | undefined> {
+    const [claim] = await db
+      .select()
+      .from(rewardClaims)
+      .where(eq(rewardClaims.id, id));
+    return claim;
+  }
+  
+  async getRewardClaimsByStatus(status: string): Promise<RewardClaim[]> {
+    return await db
+      .select()
+      .from(rewardClaims)
+      .where(eq(rewardClaims.status, status));
+  }
+  
+  async updateRewardClaim(id: number, data: Partial<RewardClaim>): Promise<RewardClaim | undefined> {
+    const [updatedClaim] = await db
+      .update(rewardClaims)
+      .set(data)
+      .where(eq(rewardClaims.id, id))
+      .returning();
+    return updatedClaim;
   }
   
   // Initialize with default data

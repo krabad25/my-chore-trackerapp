@@ -685,6 +685,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Reward claim not found" });
       }
       
+      // Get the reward for point calculation
+      const reward = await storage.getReward(claim.rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
       // Update the claim status
       const updatedClaim = await storage.updateRewardClaim(id, {
         status,
@@ -692,10 +698,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reviewedAt: Math.floor(Date.now() / 1000)
       });
       
-      // The points deduction happens in the storage.updateRewardClaim method
-      // Get updated user and reward
-      const user = await storage.getUser(claim.userId);
-      const reward = await storage.getReward(claim.rewardId);
+      // If approved, deduct points from user
+      let user = await storage.getUser(claim.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (status === "approved") {
+        // Calculate new points balance
+        const newPoints = Math.max(0, (user.points || 0) - reward.points);
+        
+        // Update user points
+        user = await storage.updateUser(user.id, { points: newPoints }) || user;
+      }
       
       res.json({
         message: `Reward claim ${status}`,
