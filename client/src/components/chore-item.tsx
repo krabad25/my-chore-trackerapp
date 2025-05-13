@@ -177,8 +177,12 @@ export function ChoreItem({ chore, onComplete, pendingCompletions = [] }: ChoreI
           : "Your chore has been completed!",
       });
       
-      // Call the onComplete callback
-      onComplete(chore, requiresProof ? 0 : chore.points); // Award points immediately if no proof required
+      // Call the onComplete callback with the chore and points
+      // If proof is required, no points are awarded immediately
+      onComplete(chore, requiresProof ? 0 : chore.points);
+      
+      // Log success
+      console.log("Chore completion submitted successfully:", data);
     } catch (error) {
       console.error("Failed to complete chore:", error);
       toast({

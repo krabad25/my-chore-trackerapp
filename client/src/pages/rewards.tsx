@@ -58,12 +58,16 @@ export default function Rewards() {
   
   const claimMutation = useMutation({
     mutationFn: async (rewardId: number) => {
-      return apiRequest(`/api/rewards/${rewardId}/claim`, {
+      console.log("Attempting to claim reward ID:", rewardId);
+      const response = await apiRequest(`/api/rewards/${rewardId}/claim`, {
         method: "POST",
         credentials: "include"
       });
+      console.log("Claim reward response:", response);
+      return response;
     },
     onSuccess: (data) => {
+      console.log("Reward claim successful:", data);
       setShowDialog(false);
       
       // Set the celebration type to "reward" (initial claim)
@@ -81,8 +85,11 @@ export default function Rewards() {
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reward-claims/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
     onError: (error) => {
+      console.error("Failed to claim reward:", error);
       toast({
         title: "Error",
         description: "Failed to claim reward. Try again later.",

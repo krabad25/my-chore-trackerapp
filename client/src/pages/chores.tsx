@@ -25,11 +25,9 @@ export default function Chores() {
   
   // Fetch any pending chore completions
   const { data: pendingCompletions = [] } = useQuery<ChoreCompletion[]>({
-    queryKey: ["/api/chore-completions/pending"],
-    onError: () => {
-      // Silently fail - this isn't critical
-      console.error("Failed to load pending completions");
-    }
+    queryKey: ["/api/chore-completions/user"],
+    // If there's an error, we can still render the page
+    retry: false
   });
   
   const handleChoreComplete = (chore: Chore, points: number) => {
@@ -43,6 +41,9 @@ export default function Chores() {
         title: "Chore Submitted!",
         description: "Mom or Dad will review it soon and give you points!",
       });
+      
+      // Stay on the chores page - no redirection needed
+      console.log("Chore submitted for review, waiting for parent approval");
     }
   };
   

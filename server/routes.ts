@@ -341,6 +341,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all chore completions for the current user
+  app.get("/api/chore-completions/user", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const completions = await storage.getChoreCompletions(req.session.userId);
+      res.json(completions);
+    } catch (error) {
+      console.error("Error fetching user's chore completions:", error);
+      res.status(500).json({ message: "Failed to fetch completions" });
+    }
+  });
+  
   app.get("/api/chores", async (req: Request, res: Response) => {
     const chores = await storage.getChores(1);
     res.json(chores);
