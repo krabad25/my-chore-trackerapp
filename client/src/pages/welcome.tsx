@@ -150,7 +150,7 @@ export default function Welcome() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-yellow-200 via-green-200 to-teal-200">
       <div className="text-center mb-4">
         <h1 className="text-5xl font-bold text-pink-500 mb-2">
-          Isabela's Chore Chart!
+          Isabella's Chore Chart!
         </h1>
         <p className="text-xl text-gray-700">Let's earn some rewards today!</p>
       </div>
