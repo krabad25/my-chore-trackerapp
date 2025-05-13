@@ -12,20 +12,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// Setup session middleware with memory store
-import MemoryStore from 'memorystore';
-const MemoryStoreSession = MemoryStore(session);
-
+// Setup session middleware with a more straightforward configuration
+// Use a simpler session setup to eliminate possible issues
 app.use(session({
-  secret: "isabela-chore-tracker-secret",
-  resave: false,
-  saveUninitialized: false,
-  store: new MemoryStoreSession({
-    checkPeriod: 86400000 // 24 hours
-  }),
+  secret: "isabela-chore-tracker-secret-key",
+  name: "isabela.sid", // Explicitly name the cookie
+  resave: true, // Force save session even if unmodified
+  saveUninitialized: true, // Save uninitialized sessions
   cookie: { 
-    secure: false, // Set to false for both development and production to ensure it works
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: false, // Must be false for non-HTTPS connections
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
     httpOnly: true,
     path: '/'
   }
