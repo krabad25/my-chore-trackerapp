@@ -62,8 +62,8 @@ export default function Navbar() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-9 w-9 p-0 rounded-full">
-                  <Avatar className="h-9 w-9">
+                <Button variant="outline" className="h-9 w-9 p-0 rounded-full border-2 border-gray-300 shadow-sm">
+                  <Avatar className="h-full w-full">
                     {user?.profilePhoto ? (
                       <AvatarImage src={user.profilePhoto} alt={userName || ""} />
                     ) : (
