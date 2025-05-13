@@ -46,6 +46,7 @@ export default function Welcome() {
           username: childUsername,
           password: childPassword,
         }),
+        credentials: 'include' // Important to include credentials
       });
       
       if (!response.ok) {
@@ -60,20 +61,24 @@ export default function Welcome() {
           description: "This is a parent account. Please use parent login.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
       
-      // Success! Navigate to chores page
+      // Success!
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name || "Isabela"}!`,
       });
       
-      // Add a slight delay to allow the toast to be seen and session to be set
-      setTimeout(() => {
-        console.log("Redirecting to dashboard");
-        window.location.href = "/dashboard";
-      }, 500);
+      // Use form submission for navigation instead of JS-based navigation
+      // This is more reliable for session-based authentication
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = '/dashboard';
+      document.body.appendChild(form);
+      form.submit();
+      
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -81,7 +86,6 @@ export default function Welcome() {
         description: "Incorrect username or password",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -108,6 +112,7 @@ export default function Welcome() {
           username: parentUsername,
           password: parentPassword,
         }),
+        credentials: 'include' // Important to include credentials
       });
       
       if (!response.ok) {
@@ -122,20 +127,24 @@ export default function Welcome() {
           description: "This is a child account. Please use child login.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
       
-      // Success! Navigate to parent page
+      // Success!
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name || "Parent"}!`,
       });
       
-      // Add a slight delay to allow the toast to be seen and session to be set
-      setTimeout(() => {
-        console.log("Redirecting to parent mode");
-        window.location.href = "/parent";
-      }, 500);
+      // Use form submission for navigation instead of JS-based navigation
+      // This is more reliable for session-based authentication
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = '/parent';
+      document.body.appendChild(form);
+      form.submit();
+      
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -143,7 +152,6 @@ export default function Welcome() {
         description: "Incorrect username or password",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };

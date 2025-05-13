@@ -15,11 +15,12 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Setup session middleware
 app.use(session({
   secret: "isabela-chore-tracker-secret",
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: { 
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    secure: false, // Set to false for both development and production to ensure it works
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true
   }
 }));
 
