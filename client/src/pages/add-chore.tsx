@@ -43,7 +43,8 @@ const formSchema = z.object({
   // New fields for timed chores
   isDurationChore: z.boolean().default(false),
   duration: z.coerce.number().min(1).max(120).optional(),
-  // Note: requiresProof will be added in a future update
+  // Whether proof image is required for completion
+  requiresProof: z.boolean().default(true),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,7 +63,7 @@ export default function AddChore() {
       imageUrl: "",
       isDurationChore: false,
       duration: 15,
-      // Note: requiresProof will be added in a future update
+      requiresProof: true,
     },
   });
   
@@ -263,7 +264,33 @@ export default function AddChore() {
                 )}
               </div>
               
-              {/* Note: Photo proof option will be added in a future update */}
+              {/* Proof Settings */}
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                <h3 className="text-lg font-medium">Proof Settings</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="requiresProof"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-base">
+                          Require photo proof
+                        </FormLabel>
+                        <FormDescription>
+                          Child will need to take a photo to prove they completed this chore
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <div className="flex gap-4 pt-4">
                 <Button 
