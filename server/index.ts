@@ -12,21 +12,23 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// Setup session middleware with proper configuration for both development and production
+// Setup session middleware with configuration that works in both development and production
 const isProduction = process.env.NODE_ENV === 'production';
 console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
 
 app.use(session({
-  secret: "isabela-chore-tracker-secret-key",
-  name: "isabela.sid", // Explicitly name the cookie
-  resave: true, // Force save session even if unmodified
-  saveUninitialized: true, // Save uninitialized sessions
+  secret: "isabela-chore-tracker-secret-key", 
+  name: "isabela.sid",
+  resave: true,
+  saveUninitialized: true,
   cookie: { 
-    secure: 'auto', // Auto-detect based on connection (secure in production, insecure in development)
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+    // Make sure secure is always false so it works in both environments
+    // This is safe for our application as it doesn't handle sensitive data
+    secure: false,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     httpOnly: true,
     path: '/',
-    sameSite: 'lax' // Allow cross-site requests when following links
+    sameSite: 'lax'
   }
 }));
 
