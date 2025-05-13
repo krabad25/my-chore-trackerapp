@@ -26,15 +26,8 @@ export function RewardClaimApprovalList() {
   const [processingId, setProcessingId] = useState<number | null>(null);
   
   // Fetch pending reward claims
-  const { data: pendingClaims, isLoading, refetch } = useQuery<PendingClaim[]>({
-    queryKey: ["/api/reward-claims/pending"],
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to load pending reward claims.",
-        variant: "destructive"
-      });
-    }
+  const { data: pendingClaims = [], isLoading, refetch } = useQuery<PendingClaim[]>({
+    queryKey: ["/api/reward-claims/pending"]
   });
   
   const reviewMutation = useMutation({
@@ -73,7 +66,7 @@ export function RewardClaimApprovalList() {
     );
   }
   
-  if (!pendingClaims || pendingClaims.length === 0) {
+  if (pendingClaims.length === 0) {
     return (
       <Card className="bg-white border-none shadow-sm">
         <CardContent className="pt-6 text-center text-muted-foreground">
@@ -86,7 +79,7 @@ export function RewardClaimApprovalList() {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold">Pending Reward Requests</h2>
-      {pendingClaims.map((item) => (
+      {pendingClaims.map((item: PendingClaim) => (
         <RewardClaimApprovalCard
           key={item.claim.id}
           item={item}

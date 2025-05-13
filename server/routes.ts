@@ -824,6 +824,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(achievements);
   });
   
+  // Reward claim routes
+  app.post("/api/rewards/:id/claim", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userId = req.session.userId!;
+      
+      // Verify the reward exists
+      const reward = await storage.getReward(id);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      // Get user and check points
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if ((user.points || 0) < reward.points) {
+        return res.status(400).json({ 
+          message: "Not enough points to claim this reward",
+          pointsNeeded: reward.points - (user.points || 0)
+        });
+      }
+      
+      // Create a reward claim request (points are not deducted until parent approval)
+      const rewardClaim = await storage.claimReward({
+        rewardId: reward.id,
+        userId: userId,
+        status: "pending"
+      });
+      
+      // Mark the reward as claimed in the request state
+      await storage.updateReward(id, { 
+        claimed: true
+      });
+      
+      res.status(201).json({
+        message: "Reward claim request submitted for parent approval",
+        claim: rewardClaim,
+        reward: reward
+      });
+    } catch (error) {
+      console.error("Error claiming reward:", error);
+      res.status(400).json({ message: "Invalid reward claim data" });
+    }
+  });
+  
+  // Get pending reward claims - for parent approval
+  app.get("/api/reward-claims/pending", isParent, async (req: Request, res: Response) => {
+    try {
+      // Get all users in the family
+      const parentUser = await storage.getUser(req.session.userId!);
+      if (!parentUser) {
+        return res.status(404).json({ message: "Parent user not found" });
+      }
+      
+      const familyMembers = await storage.getUsersByFamilyId(parentUser.familyId);
+      const childUsers = familyMembers.filter(user => user.role === 'child');
+      
+      // No children in family yet
+      if (childUsers.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get pending claims for all children in the family
+      const pendingClaims = [];
+      
+      // Get all pending claims
+      const claims = await storage.getRewardClaimsByStatus("pending");
+      
+      // Filter claims for children in this family and add reward and child details
+      for (const claim of claims) {
+        const child = childUsers.find(child => child.id === claim.userId);
+        if (child) {
+          const reward = await storage.getReward(claim.rewardId);
+          if (reward) {
+            pendingClaims.push({
+              claim,
+              reward,
+              child
+            });
+          }
+        }
+      }
+      
+      res.json(pendingClaims);
+    } catch (error) {
+      console.error("Error fetching pending reward claims:", error);
+      res.status(500).json({ message: "Failed to fetch pending reward claims" });
+    }
+  });
+  
+  // Review a reward claim - approve or reject
+  app.post("/api/reward-claims/:id/review", isParent, async (req: Request, res: Response) => {
+    const idSchema = z.object({
+      id: z.coerce.number().int().positive()
+    });
+    
+    const reviewSchema = z.object({
+      status: z.enum(["approved", "rejected"]),
+      feedback: z.string().optional()
+    });
+    
+    try {
+      const { id } = idSchema.parse(req.params);
+      const { status } = reviewSchema.parse(req.body);
+      
+      // Get the claim
+      const claim = await storage.getRewardClaim(id);
+      if (!claim) {
+        return res.status(404).json({ message: "Reward claim not found" });
+      }
+      
+      // Get the reward for point calculation
+      const reward = await storage.getReward(claim.rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      // Update the claim status
+      const updatedClaim = await storage.updateRewardClaim(id, {
+        status,
+        reviewedBy: req.session.userId!,
+        reviewedAt: Math.floor(Date.now() / 1000)
+      });
+      
+      // If approved, deduct points from user
+      let user = await storage.getUser(claim.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (status === "approved") {
+        // Calculate new points balance
+        const newPoints = Math.max(0, (user.points || 0) - reward.points);
+        
+        // Update user points
+        user = await storage.updateUser(user.id, { points: newPoints }) || user;
+      }
+      
+      res.json({
+        message: `Reward claim ${status}`,
+        claim: updatedClaim,
+        user: user,
+        reward: reward
+      });
+    } catch (error) {
+      console.error("Error reviewing reward claim:", error);
+      res.status(400).json({ message: "Invalid review data" });
+    }
+  });
+  
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
   
